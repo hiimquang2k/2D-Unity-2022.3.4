@@ -41,5 +41,6 @@ MonoBehaviour:
   slideSpeed: 0
   slideAccel: 0
   coyoteTime: 0.01
-  jumpInputBufferTime: 0.01
+  jumpInputBufferTime: 0.5
   attackInputBufferTime: 0.5
+  PlayerMaxHealth: 10
