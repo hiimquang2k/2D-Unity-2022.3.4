@@ -24,10 +24,6 @@ public class HealthSystem : MonoBehaviour
     [SerializeField] private int currentHealth;
     [SerializeField] private bool isInvulnerable = false;
 
-    [Header("UI References")]
-    [SerializeField] private Image healthBar;
-    [SerializeField] private Text healthText;
-    
     private SpriteRenderer spriteRenderer;
     private Color originalColor;
     private bool isFlashing = false;
@@ -56,24 +52,20 @@ public class HealthSystem : MonoBehaviour
 
     private void Start()
     {
-        currentHealth = healthData.maxHealth;
+        CurrentHealth = healthData.maxHealth;
         UpdateUI();
     }
     public void TakeDamage(int damage, DamageType damageType)
     {
-        // Don't take damage if invulnerable or already dead
-        if (isInvulnerable || currentHealth <= 0) return;
+        if (damage <= 0) return; // Ensure damage is positive
+        if (isInvulnerable || CurrentHealth <= 0) return;
 
         // Apply damage reduction based on damage type if needed
         // This is where you could implement resistances or vulnerabilities
         int damageToApply = damage;
 
         // Apply the damage
-        currentHealth = Mathf.Max(0, currentHealth - damageToApply);
-
-        // Update UI and notify listeners
-        UpdateUI();
-        OnHealthChanged?.Invoke(currentHealth, healthData.maxHealth);
+        CurrentHealth = Mathf.Max(0, CurrentHealth - damageToApply);
 
         // Visual feedback
         if (spriteRenderer != null && !isFlashing)
@@ -85,7 +77,7 @@ public class HealthSystem : MonoBehaviour
         StartCoroutine(InvulnerabilityRoutine());
 
         // Check if entity has died
-        if (currentHealth <= 0)
+        if (CurrentHealth <= 0)
         {
             Die();
         }
@@ -93,13 +85,9 @@ public class HealthSystem : MonoBehaviour
 
     public void Heal(int amount)
     {
-        if (currentHealth <= 0) return; // Can't heal if dead
+        if (CurrentHealth <= 0) return; // Can't heal if dead
 
-        currentHealth = Mathf.Min(healthData.maxHealth, currentHealth + amount);
-        
-        // Update UI and notify listeners
-        UpdateUI();
-        OnHealthChanged?.Invoke(currentHealth, healthData.maxHealth);
+        CurrentHealth = Mathf.Min(healthData.maxHealth, CurrentHealth + amount);
     }
 
     private void Die()
@@ -112,15 +100,7 @@ public class HealthSystem : MonoBehaviour
 
     private void UpdateUI()
     {
-        if (healthBar != null)
-        {
-            healthBar.fillAmount = (float)currentHealth / healthData.maxHealth;
-        }
-
-        if (healthText != null)
-        {
-            healthText.text = currentHealth + " / " + healthData.maxHealth;
-        }
+        // Remove UI update logic
     }
 
     private IEnumerator FlashRoutine()
@@ -151,8 +131,16 @@ public class HealthSystem : MonoBehaviour
 
     // Public getters/setters
     public int GetMaxHealth() => healthData.maxHealth;
-    public int GetCurrentHealth() => currentHealth;
-    public float GetHealthPercentage() => (float)currentHealth / healthData.maxHealth;
+    public int CurrentHealth
+    {
+        get => currentHealth;
+        set
+        {
+            currentHealth = Mathf.Clamp(value, 0, healthData.maxHealth);
+            OnHealthChanged?.Invoke(currentHealth, healthData.maxHealth);
+        }
+    }
+    public float GetHealthPercentage() => (float)CurrentHealth / healthData.maxHealth;
     public bool IsInvulnerable() => isInvulnerable;
     
     // Method to manually set max health if needed
@@ -167,13 +155,19 @@ public class HealthSystem : MonoBehaviour
             healthData = runtimeData;
             
             // Adjust current health if needed
-            if (currentHealth > newMaxHealth)
+            if (CurrentHealth > newMaxHealth)
             {
-                currentHealth = newMaxHealth;
+                CurrentHealth = newMaxHealth;
             }
             
             UpdateUI();
-            OnHealthChanged?.Invoke(currentHealth, healthData.maxHealth);
+            OnHealthChanged?.Invoke(CurrentHealth, healthData.maxHealth);
         }
+    }
+
+    public void SetCurrentHealth(int newHealth)
+    {
+        Debug.Log("Setting current health to: " + newHealth);
+        CurrentHealth = newHealth;
     }
 }

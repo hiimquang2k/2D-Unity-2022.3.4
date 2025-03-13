@@ -38,7 +38,7 @@ public class HealthBar : MonoBehaviour
         healthSystem.OnHealthChanged += UpdateHealthBar;
 
         // Initial update
-        UpdateHealthBar(healthSystem.GetCurrentHealth(), healthSystem.GetMaxHealth());
+        UpdateHealthBar(healthSystem.CurrentHealth, healthSystem.GetMaxHealth());
     }
 
     private void OnDestroy()
@@ -60,15 +60,13 @@ public class HealthBar : MonoBehaviour
         }
     }
 
-    public void UpdateHealthBar(int currentHealth, int maxHealth)
+    private void UpdateHealthBar(int currentHealth, int maxHealth)
     {
         float healthPercent = (float)currentHealth / maxHealth;
 
         // Update fill amount
-        if (smoothFill)
-            targetFillAmount = healthPercent;
-        else
-            fillImage.fillAmount = healthPercent;
+        fillImage.fillAmount = healthPercent; // Update the fill amount directly
+        targetFillAmount = healthPercent;
 
         // Update color based on health percentage
         if (healthPercent <= lowHealthThreshold)
