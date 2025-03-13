@@ -85,6 +85,4 @@ public class PlayerData : ScriptableObject
 		runDecceleration = Mathf.Clamp(runDecceleration, 0.01f, runMaxSpeed);
 		#endregion
 	}
-	[Header("Health")]
-	[SerializeField] public float PlayerMaxHealth = 10;
 }
