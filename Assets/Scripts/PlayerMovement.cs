@@ -8,37 +8,42 @@ using UnityEngine.InputSystem;
 public class PlayerMovement : MonoBehaviour
 {
     public PlayerData Data;
-    [Header("Character config")]
-    [SerializeField] private float speed;
-    [SerializeField] private float jumpForce;
     [Header("Layer")]
     [SerializeField] private LayerMask groundLayer;
     [SerializeField] private LayerMask wallLayer;
-    [Header("Gravity")]
-    [SerializeField] private float fallGravityValue;
-    [SerializeField] private float defaultGravityValue;
-    [SerializeField] private float maxFallSpeed;
-    [SerializeField] private float wallSlidingSpeed;
+    [Header("Trail Settings")]
+    [SerializeField] private TrailRenderer trailRenderer;
+    [SerializeField] private float trailTime = 0.5f;
+    private bool canDash = true;
+    private bool isDashing = false;
     public bool IsFacingRight { get; private set; }
     public float LastOnGroundTime { get; private set; }
     public float LastPressedJumpTime;
-    private bool isWallSliding;
-    private bool isWallJumping;
-    private float wallJumpingDirection;
-    private float wallJumpingTime = 0.2f;
-    private float wallJumpingCounter;
-    private float wallJumpingDuration = 0.1f;
-    private Vector2 wallJumppingPower = new(4f,8f);
     public float horizontal { get; private set; }
+    public float vertical { get; private set; }
     public Rigidbody2D body { get; private set; }
     private Animator anim;
     private BoxCollider2D boxCollider;
-
+    private Vector2 dashDirection;
     private void Awake()
     {
         body = GetComponent<Rigidbody2D>();
         anim = GetComponent<Animator>();
         boxCollider = GetComponent<BoxCollider2D>();
+        if (trailRenderer == null)
+        {
+            trailRenderer = GetComponent<TrailRenderer>();
+
+            // Create trail renderer if it doesn't exist
+            if (trailRenderer == null)
+            {
+                trailRenderer = gameObject.AddComponent<TrailRenderer>();
+                SetUpTrailRenderer();
+            }
+        }
+
+        // Disable trail initially
+        trailRenderer.emitting = false;
     }
 
     private void Start()
@@ -48,8 +53,10 @@ public class PlayerMovement : MonoBehaviour
 
     private void FixedUpdate()
     {
-        if (!isWallJumping)
+        if (!isDashing)
+        {
             Run();
+        }
     }
 
     private void Update()
@@ -59,6 +66,11 @@ public class PlayerMovement : MonoBehaviour
             LastPressedJumpTime -= Time.deltaTime;
 
         horizontal = Input.GetAxisRaw("Horizontal");
+        vertical = Input.GetAxisRaw("Vertical");
+        dashDirection = new Vector2(horizontal, vertical).normalized;
+        // If no directional input, dash in the direction player is facing
+        if (dashDirection == Vector2.zero)
+            dashDirection = IsFacingRight ? Vector2.right : Vector2.left;
 
         if (Input.GetKeyDown(KeyCode.Space))
             LastPressedJumpTime = Data.jumpInputBufferTime;
@@ -66,6 +78,11 @@ public class PlayerMovement : MonoBehaviour
             Jump();
         if (Input.GetKeyUp(KeyCode.Space) && body.velocity.y > 0)
             body.velocity = new Vector2(body.velocity.x, 0);
+        // Dash input (using left shift)
+        if (Input.GetKeyDown(KeyCode.LeftShift) && canDash && !isDashing)
+        {
+            StartCoroutine(DashRoutine());
+        }
 
         if (IsGrounded())
             LastOnGroundTime = Data.coyoteTime;
@@ -74,18 +91,20 @@ public class PlayerMovement : MonoBehaviour
         anim.SetBool("Grounded", IsGrounded());
         anim.SetBool("Run", horizontal != 0);
 
-        WallSlide();
-        WallJump();
-        if (!isWallJumping)
+        if (!isDashing)
         {
             Flip();
         }
+
         if (body.velocity.y < 0)
         {
-            body.gravityScale = defaultGravityValue * fallGravityValue;
-            body.velocity = new Vector2(body.velocity.x, Mathf.Max(body.velocity.y, -maxFallSpeed));
+            body.gravityScale = Data.gravityScale * Data.fallGravityMult;
+            body.velocity = new Vector2(body.velocity.x, Mathf.Max(body.velocity.y, -Data.maxFallSpeed));
         }
-        else body.gravityScale = defaultGravityValue;
+        else if (!isDashing)
+        {
+            body.gravityScale = Data.gravityScale;
+        }
     }
 
     private void Flip()
@@ -119,49 +138,7 @@ public class PlayerMovement : MonoBehaviour
         LastPressedJumpTime = 0;
         LastOnGroundTime = 0;
         anim.Play("Pre-Jump");
-        body.velocity = new Vector2(body.velocity.x, jumpForce);
-    }
-
-    private void WallJump()
-    {
-        if (isWallSliding)
-        {
-            isWallJumping = false;
-            wallJumpingDirection = -transform.localScale.x;
-            wallJumpingCounter = wallJumpingTime;
-            CancelInvoke(nameof(StopWallJumping));
-        }
-        else wallJumpingCounter -= Time.deltaTime;
-        if (Input.GetKeyDown(KeyCode.Space) && wallJumpingCounter > 0f)
-        {
-            isWallJumping = true;
-            body.velocity = new Vector2(wallJumpingDirection * wallJumppingPower.x, wallJumppingPower.y);
-            wallJumpingCounter = 0f;
-
-            if (transform.localScale.x != wallJumpingDirection)
-            {
-                IsFacingRight = !IsFacingRight;
-                Vector2 localScale = transform.localScale;
-                localScale.x *= -1f;
-                transform.localScale = localScale;
-            }
-            Invoke(nameof(StopWallJumping), wallJumpingDuration);
-        }
-    }
-
-    private void StopWallJumping()
-    {
-        isWallJumping = false;
-    }
-
-    private void WallSlide()
-    {
-        if (OnWall() && !IsGrounded() && horizontal != 0f)
-        {
-            isWallSliding = true;
-            body.velocity = new Vector2(body.velocity.x, Mathf.Clamp(body.velocity.y, -wallSlidingSpeed, 0));
-        }
-        else isWallSliding = false;
+        body.velocity = new Vector2(body.velocity.x, Data.jumpForce);
     }
 
     private bool IsGrounded()
@@ -174,11 +151,6 @@ public class PlayerMovement : MonoBehaviour
         return !IsGrounded() && body.velocity.y < 0;
     }
 
-    private bool OnWall()
-    {
-        return Physics2D.BoxCast(boxCollider.bounds.center, boxCollider.bounds.size, 0, new Vector2(transform.localScale.x,0), 0.1f, wallLayer);
-    }
-
     public void CheckDirectionToFace(bool isMovingRight)
     {
         if (isMovingRight != IsFacingRight)
@@ -188,5 +160,50 @@ public class PlayerMovement : MonoBehaviour
     public void SetGravityScale(float scale)
     {
         body.gravityScale = scale;
+    }
+    private void SetUpTrailRenderer()
+    {
+        trailRenderer.time = trailTime;
+        trailRenderer.startWidth = 0.5f;
+        trailRenderer.endWidth = 0.1f;
+        trailRenderer.startColor = new Color(1f, 1f, 1f, 0.8f);
+        trailRenderer.endColor = new Color(1f, 1f, 1f, 0f);
+
+        // Create a new material with the default sprite shader
+        Material trailMaterial = new Material(Shader.Find("Sprites/Default"));
+        trailRenderer.material = trailMaterial;
+    }
+    private IEnumerator DashRoutine()
+    {
+        // Start dash
+        isDashing = true;
+        canDash = false;
+
+        // Store original gravity
+        float originalGravity = body.gravityScale;
+        body.gravityScale = 0; // Disable gravity during dash
+
+        // Play dash animation if you have one
+        // anim.SetTrigger("Dash");
+
+        // Apply dash force
+        body.velocity = dashDirection * Data.dashSpeed;
+
+        // Enable trail effect
+        trailRenderer.emitting = true;
+
+        // Wait for dash duration
+        yield return new WaitForSeconds(Data.dashDuration);
+
+        // End dash
+        isDashing = false;
+        body.gravityScale = originalGravity;
+
+        // Disable trail after dash
+        trailRenderer.emitting = false;
+
+        // Wait for cooldown
+        yield return new WaitForSeconds(Data.dashCooldown);
+        canDash = true;
     }
 }
