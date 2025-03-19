@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: -5897967017481796951}
   m_Layer: 0
   m_Name: Square
-  m_TagString: Untagged
+  m_TagString: Monster
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -47,10 +47,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   healAmount: 25
-  destroyOnPickup: 1
+  pickupSound: {fileID: 0}
   pickupEffect: {fileID: 0}
   effectDuration: 1
-  pickupSound: {fileID: 0}
 --- !u!212 &7434581768834013551
 SpriteRenderer:
   m_ObjectHideFlags: 0
