@@ -70,7 +70,15 @@ public class PlayerData : ScriptableObject
 	
 	[Header("Attack")]
 	[Range(0.01f, 0.5f)] public float attackInputBufferTime;
-	
+
+    [System.Serializable]
+    public class SaveData
+    {
+        public int currentHealth;
+        public Vector3 playerPosition;
+        // Add other data fields as needed
+    }
+
 	//Unity Callback, called when the inspector updates
     private void OnValidate()
     {

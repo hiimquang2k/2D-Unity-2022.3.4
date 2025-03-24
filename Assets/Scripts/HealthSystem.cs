@@ -96,6 +96,22 @@ public class HealthSystem : MonoBehaviour
         OnDeath?.Invoke();
         
         Debug.Log(gameObject.name + " has died.");
+        
+        // Disable player controls if this is the player
+        if (gameObject.CompareTag("Player"))
+        {
+            // Implement logic to disable player controls
+            // e.g., PlayerController.Instance.DisableControls();
+        }
+        
+        // Play death animation if applicable
+        // e.g., animator.SetTrigger("Die");
+        
+        // Destroy the game object if it's a monster
+        if (gameObject.CompareTag("Monster"))
+        {
+            Destroy(gameObject);
+        }
     }
 
     private void UpdateUI()
