@@ -1,117 +1,304 @@
 using UnityEngine;
+using System.Collections.Generic;
 
-/**
- * AdvancedParallax is a script that allows for parallax scrolling in Unity.
- * It can be used to create a sense of depth in 2D games by moving background layers at different speeds.
- * 
- * To use this script, attach it to a GameObject in your scene and set up the ParallaxLayer array in the Inspector.
- * Each ParallaxLayer represents a layer in your parallax effect, and you can adjust its properties to control how it moves.
- * 
- * The script uses the main camera's position to calculate the movement of each layer, so make sure to set the main camera in the Camera.main property.
- */
-public class AdvancedParallax : MonoBehaviour
+public class NonOverlappingParallax : MonoBehaviour
 {
-    /**
-     * A ParallaxLayer represents a single layer in the parallax effect.
-     * It contains properties to control how the layer moves and whether it should scroll infinitely.
-     */
     [System.Serializable]
     public class ParallaxLayer
     {
-        public GameObject layerObject; // The GameObject representing the parallax layer
-        public Vector2 parallaxFactor; // The factor by which the layer moves relative to the camera
-        public bool infiniteHorizontal; // Whether the layer should scroll infinitely horizontally
-        public bool infiniteVertical; // Whether the layer should scroll infinitely vertically
+        public GameObject layerObject; // The original background object
+        public Vector2 parallaxFactor; // How fast this layer moves relative to camera
+        public bool infiniteHorizontal; // Whether to tile horizontally
+        public bool infiniteVertical; // Whether to tile vertically
+        public float scale = 1f; // Scale factor for this layer
+
+        [HideInInspector]
+        public List<GameObject> instances = new List<GameObject>(); // All instances of this background
+
+        [HideInInspector]
+        public float exactWidth; // The exact width of the sprite in world units
+
+        [HideInInspector]
+        public float exactHeight; // The exact height of the sprite in world units
     }
 
-    [SerializeField] private ParallaxLayer[] layers; // Array of parallax layers
-    [SerializeField] private float smoothing = 1f; // Smoothing factor for movement
+    [SerializeField] private ParallaxLayer[] layers;
+    [SerializeField] private float smoothing = 1f;
+    [SerializeField] private bool debugMode = false; // Toggle to show debug info
 
-    private Transform cameraTransform; // Reference to the main camera's transform
-    private Vector3 previousCameraPosition; // Store the previous position of the camera
-    private float[] textureUnitSizeX; // Array to store texture sizes for horizontal scrolling
-    private float[] textureUnitSizeY; // Array to store texture sizes for vertical scrolling
+    private Transform cameraTransform;
+    private Vector3 previousCameraPosition;
 
-    /**
-     * Called when the script is initialized.
-     * Sets up the camera transform and initializes the texture size arrays.
-     */
     private void Start()
     {
-        cameraTransform = Camera.main.transform; // Get the main camera's transform
-        previousCameraPosition = cameraTransform.position; // Initialize previous camera position
-        
-        textureUnitSizeX = new float[layers.Length]; // Initialize texture size arrays
-        textureUnitSizeY = new float[layers.Length];
-        
-        // Calculate texture sizes for each layer
+        cameraTransform = Camera.main.transform;
+        previousCameraPosition = cameraTransform.position;
+
+        // Initialize each layer
         for (int i = 0; i < layers.Length; i++)
         {
-            if (layers[i].layerObject != null)
+            if (layers[i].layerObject == null) continue;
+
+            SpriteRenderer sr = layers[i].layerObject.GetComponent<SpriteRenderer>();
+            if (sr == null) continue;
+
+            // Calculate exact width and height
+            layers[i].exactWidth = sr.sprite.rect.width / sr.sprite.pixelsPerUnit;
+            layers[i].exactHeight = sr.sprite.rect.height / sr.sprite.pixelsPerUnit;
+
+            // Apply scale factor to dimensions
+            layers[i].exactWidth *= layers[i].scale;
+            layers[i].exactHeight *= layers[i].scale;
+
+            // Apply scale to the original object
+            layers[i].layerObject.transform.localScale = Vector3.one * layers[i].scale;
+
+            if (debugMode)
             {
-                SpriteRenderer sr = layers[i].layerObject.GetComponent<SpriteRenderer>(); // Get the SpriteRenderer component
-                if (sr != null)
-                {
-                    textureUnitSizeX[i] = sr.sprite.texture.width / sr.sprite.pixelsPerUnit; // Calculate width in world units
-                    textureUnitSizeY[i] = sr.sprite.texture.height / sr.sprite.pixelsPerUnit; // Calculate height in world units
-                }
+                Debug.Log($"Layer {layers[i].layerObject.name} - Width: {layers[i].exactWidth}, Height: {layers[i].exactHeight}");
+            }
+
+            // Add original to instances list
+            layers[i].instances.Clear();
+            layers[i].instances.Add(layers[i].layerObject);
+
+            // Create initial instances for infinite scrolling
+            if (layers[i].infiniteHorizontal)
+            {
+                SetupInitialInstances(i);
             }
         }
     }
 
-    /**
-     * Called every frame after all other updates.
-     * Calculates the movement of each layer based on the camera's position and applies it.
-     */
+    private void SetupInitialInstances(int layerIndex)
+    {
+        ParallaxLayer layer = layers[layerIndex];
+
+        // Calculate how many instances we need based on screen width
+        float viewportWidth = Camera.main.orthographicSize * 2 * Camera.main.aspect;
+        int requiredInstances = Mathf.CeilToInt(viewportWidth / layer.exactWidth) + 2; // +2 for buffer
+
+        if (debugMode)
+        {
+            Debug.Log($"Setting up {requiredInstances} instances for layer {layer.layerObject.name}");
+        }
+
+        // Create left and right instances
+        for (int i = 1; i <= requiredInstances / 2; i++)
+        {
+            // Right instance - exactly placed at width intervals
+            GameObject rightInstance = Instantiate(layer.layerObject, transform);
+            rightInstance.name = $"{layer.layerObject.name}_right{i}";
+            rightInstance.transform.localScale = Vector3.one * layer.scale;
+            rightInstance.transform.position = new Vector3(
+                layer.layerObject.transform.position.x + (layer.exactWidth * i),
+                layer.layerObject.transform.position.y,
+                layer.layerObject.transform.position.z
+            );
+            layer.instances.Add(rightInstance);
+
+            // Left instance - exactly placed at width intervals
+            GameObject leftInstance = Instantiate(layer.layerObject, transform);
+            leftInstance.name = $"{layer.layerObject.name}_left{i}";
+            leftInstance.transform.localScale = Vector3.one * layer.scale;
+            leftInstance.transform.position = new Vector3(
+                layer.layerObject.transform.position.x - (layer.exactWidth * i),
+                layer.layerObject.transform.position.y,
+                layer.layerObject.transform.position.z
+            );
+            layer.instances.Add(leftInstance);
+        }
+    }
+
     private void LateUpdate()
     {
-        Vector3 deltaMovement = cameraTransform.position - previousCameraPosition; // Calculate camera movement since last frame
-        
+        // Calculate camera movement
+        Vector3 deltaMovement = cameraTransform.position - previousCameraPosition;
+
+        // Process each layer
         for (int i = 0; i < layers.Length; i++)
         {
-            if (layers[i].layerObject != null)
+            ParallaxLayer layer = layers[i];
+            if (layer.layerObject == null) continue;
+
+            // Move all instances based on parallax factor
+            foreach (GameObject instance in layer.instances)
             {
-                // Calculate parallax position
-                Vector3 parallaxPosition = new Vector3(
-                    deltaMovement.x * layers[i].parallaxFactor.x,
-                    deltaMovement.y * layers[i].parallaxFactor.y,
+                Vector3 parallaxMovement = new Vector3(
+                    deltaMovement.x * layer.parallaxFactor.x,
+                    deltaMovement.y * layer.parallaxFactor.y,
                     0
                 );
-                
-                // Apply movement
-                layers[i].layerObject.transform.position += parallaxPosition; // Move the layer based on parallax
-                
-                // Handle infinite scrolling if enabled
-                if (layers[i].infiniteHorizontal)
-                {
-                    float distanceX = Mathf.Abs(cameraTransform.position.x - layers[i].layerObject.transform.position.x);
-                    if (distanceX >= textureUnitSizeX[i])
-                    {
-                        float offsetX = (cameraTransform.position.x - layers[i].layerObject.transform.position.x) % textureUnitSizeX[i];
-                        layers[i].layerObject.transform.position = new Vector3(
-                            cameraTransform.position.x + offsetX,
-                            layers[i].layerObject.transform.position.y,
-                            layers[i].layerObject.transform.position.z
-                        );
-                    }
-                }
-                
-                if (layers[i].infiniteVertical)
-                {
-                    float distanceY = Mathf.Abs(cameraTransform.position.y - layers[i].layerObject.transform.position.y);
-                    if (distanceY >= textureUnitSizeY[i])
-                    {
-                        float offsetY = (cameraTransform.position.y - layers[i].layerObject.transform.position.y) % textureUnitSizeY[i];
-                        layers[i].layerObject.transform.position = new Vector3(
-                            layers[i].layerObject.transform.position.x,
-                            cameraTransform.position.y + offsetY,
-                            layers[i].layerObject.transform.position.z
-                        );
-                    }
-                }
+                instance.transform.position += parallaxMovement;
+            }
+
+            // Handle repositioning if needed
+            if (layer.infiniteHorizontal)
+            {
+                RepositionInstances(i);
             }
         }
-        
-        previousCameraPosition = cameraTransform.position; // Update the previous camera position
+
+        // Update previous camera position
+        previousCameraPosition = cameraTransform.position;
+    }
+
+    private void RepositionInstances(int layerIndex)
+    {
+        ParallaxLayer layer = layers[layerIndex];
+        float cameraX = cameraTransform.position.x;
+        float viewportWidth = Camera.main.orthographicSize * 2 * Camera.main.aspect;
+
+        // Find leftmost and rightmost instances
+        GameObject leftmost = null;
+        GameObject rightmost = null;
+        float leftmostX = float.MaxValue;
+        float rightmostX = float.MinValue;
+
+        foreach (GameObject instance in layer.instances)
+        {
+            float posX = instance.transform.position.x;
+
+            if (posX < leftmostX)
+            {
+                leftmostX = posX;
+                leftmost = instance;
+            }
+
+            if (posX > rightmostX)
+            {
+                rightmostX = posX;
+                rightmost = instance;
+            }
+        }
+
+        if (leftmost == null || rightmost == null) return;
+
+        // Define screen boundaries with some padding
+        float leftScreenEdge = cameraX - (viewportWidth / 2) - (layer.exactWidth / 2);
+        float rightScreenEdge = cameraX + (viewportWidth / 2) + (layer.exactWidth / 2);
+
+        // Check if rightmost instance is too far left (off-screen)
+        if (rightmost.transform.position.x + (layer.exactWidth / 2) < leftScreenEdge)
+        {
+            // Move to the right of the leftmost
+            rightmost.transform.position = new Vector3(
+                leftmost.transform.position.x + layer.exactWidth,
+                rightmost.transform.position.y,
+                rightmost.transform.position.z
+            );
+
+            if (debugMode)
+            {
+                Debug.Log($"Repositioned {rightmost.name} to right side at {rightmost.transform.position.x}");
+            }
+        }
+
+        // Check if leftmost instance is too far right (off-screen)
+        if (leftmost.transform.position.x - (layer.exactWidth / 2) > rightScreenEdge)
+        {
+            // Move to the left of the rightmost
+            leftmost.transform.position = new Vector3(
+                rightmost.transform.position.x - layer.exactWidth,
+                leftmost.transform.position.y,
+                leftmost.transform.position.z
+            );
+
+            if (debugMode)
+            {
+                Debug.Log($"Repositioned {leftmost.name} to left side at {leftmost.transform.position.x}");
+            }
+        }
+
+        // Check if we need additional instances on the right
+        if (rightmost.transform.position.x < rightScreenEdge)
+        {
+            GameObject newInstance = Instantiate(layer.layerObject, transform);
+            newInstance.name = $"{layer.layerObject.name}_newRight";
+            newInstance.transform.localScale = Vector3.one * layer.scale;
+            newInstance.transform.position = new Vector3(
+                rightmost.transform.position.x + layer.exactWidth,
+                rightmost.transform.position.y,
+                rightmost.transform.position.z
+            );
+            layer.instances.Add(newInstance);
+
+            if (debugMode)
+            {
+                Debug.Log($"Created new right instance at {newInstance.transform.position.x}");
+            }
+        }
+
+        // Check if we need additional instances on the left
+        if (leftmost.transform.position.x > leftScreenEdge)
+        {
+            GameObject newInstance = Instantiate(layer.layerObject, transform);
+            newInstance.name = $"{layer.layerObject.name}_newLeft";
+            newInstance.transform.localScale = Vector3.one * layer.scale;
+            newInstance.transform.position = new Vector3(
+                leftmost.transform.position.x - layer.exactWidth,
+                leftmost.transform.position.y,
+                leftmost.transform.position.z
+            );
+            layer.instances.Add(newInstance);
+
+            if (debugMode)
+            {
+                Debug.Log($"Created new left instance at {newInstance.transform.position.x}");
+            }
+        }
+
+        // Clean up instances that are far outside the view
+        List<GameObject> instancesToRemove = new List<GameObject>();
+        foreach (GameObject instance in layer.instances)
+        {
+            // Don't remove the original
+            if (instance == layer.layerObject) continue;
+
+            // If instance is far outside camera view (with extra padding)
+            float posX = instance.transform.position.x;
+            if (posX < leftScreenEdge - layer.exactWidth * 2 ||
+                posX > rightScreenEdge + layer.exactWidth * 2)
+            {
+                instancesToRemove.Add(instance);
+            }
+        }
+
+        // Remove and destroy far away instances
+        foreach (GameObject instance in instancesToRemove)
+        {
+            layer.instances.Remove(instance);
+            Destroy(instance);
+
+            if (debugMode)
+            {
+                Debug.Log($"Removed far away instance {instance.name}");
+            }
+        }
+    }
+
+    // Visual debugging in Scene view
+    private void OnDrawGizmos()
+    {
+        if (!debugMode) return;
+
+        // Draw camera boundaries
+        if (Camera.main != null)
+        {
+            float verticalSize = Camera.main.orthographicSize;
+            float horizontalSize = verticalSize * Camera.main.aspect;
+
+            Gizmos.color = Color.yellow;
+            Vector3 cameraPos = Camera.main.transform.position;
+            Vector3 topLeft = new Vector3(cameraPos.x - horizontalSize, cameraPos.y + verticalSize, cameraPos.z);
+            Vector3 topRight = new Vector3(cameraPos.x + horizontalSize, cameraPos.y + verticalSize, cameraPos.z);
+            Vector3 bottomLeft = new Vector3(cameraPos.x - horizontalSize, cameraPos.y - verticalSize, cameraPos.z);
+            Vector3 bottomRight = new Vector3(cameraPos.x + horizontalSize, cameraPos.y - verticalSize, cameraPos.z);
+
+            Gizmos.DrawLine(topLeft, topRight);
+            Gizmos.DrawLine(topRight, bottomRight);
+            Gizmos.DrawLine(bottomRight, bottomLeft);
+            Gizmos.DrawLine(bottomLeft, topLeft);
+        }
     }
 }
