@@ -71,6 +71,9 @@ public class PlayerData : ScriptableObject
 	[Header("Attack")]
 	[Range(0.01f, 0.5f)] public float attackInputBufferTime;
 
+    [Header("Direction")]
+    [SerializeField] public Vector2 initialDirection = Vector2.right;
+
     [System.Serializable]
     public class SaveData
     {

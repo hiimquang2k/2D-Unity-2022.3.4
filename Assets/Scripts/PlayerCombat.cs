@@ -15,10 +15,11 @@ public class PlayerCombat : MonoBehaviour
 
     [Header("References")]
     [SerializeField] private PlayerMovement playerMovement;
+    [SerializeField] private CooldownSystem cooldownSystem;
+    [SerializeField] private DirectionManager directionManager;
 
     private int comboCount = 0;
     private float lastAttackTime = 0f;
-    private float cooldownTimer = 0f;
     private bool canAttack = true;
     private Animator anim;
     private bool comboEnabled = false;
@@ -26,6 +27,10 @@ public class PlayerCombat : MonoBehaviour
     private void Awake()
     {
         anim = GetComponent<Animator>();
+        if (cooldownSystem == null)
+        {
+            cooldownSystem = gameObject.AddComponent<CooldownSystem>();
+        }
     }
 
     private void Start()
@@ -37,10 +42,8 @@ public class PlayerCombat : MonoBehaviour
     void Update()
     {
         // Manage cooldown
-        if (cooldownTimer > 0)
-            cooldownTimer -= Time.deltaTime;
-        else
-            canAttack = true;
+        cooldownSystem.UpdateCooldown();
+        canAttack = !cooldownSystem.IsOnCooldown;
 
         // Reset combo if window expires
         if (Time.time - lastAttackTime > comboWindow && comboCount > 0)
@@ -72,8 +75,7 @@ public class PlayerCombat : MonoBehaviour
         else if (comboCount == 2)
         {
             anim.Play("Attack2");
-            canAttack = false;
-            cooldownTimer = attackCooldown;
+            cooldownSystem.StartCooldown(attackCooldown);
             ResetCombo();
         }
     }
@@ -87,7 +89,7 @@ public class PlayerCombat : MonoBehaviour
     // Called by animation event in both animations when attack point is reached
     public void PerformAttack()
     {
-        Vector2 direction = playerMovement.IsFacingRight ? Vector2.right : Vector2.left;
+        Vector2 direction = directionManager.GetDirection();
         RaycastHit2D hit = Physics2D.Raycast(attackOrigin.position, direction, attackDistance, enemyLayer);
 
         Debug.DrawRay(attackOrigin.position, direction * attackDistance, Color.red, 0.2f);
@@ -131,10 +133,10 @@ public class PlayerCombat : MonoBehaviour
     // For debugging in editor
     private void OnDrawGizmosSelected()
     {
-        if (attackOrigin != null && playerMovement != null)
+        if (attackOrigin != null && directionManager != null)
         {
             Gizmos.color = Color.red;
-            Vector2 direction = playerMovement.IsFacingRight ? Vector2.right : Vector2.left;
+            Vector2 direction = directionManager.GetDirection();
             Gizmos.DrawLine(attackOrigin.position, attackOrigin.position + (Vector3)(direction * attackDistance));
         }
     }

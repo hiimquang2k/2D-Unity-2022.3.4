@@ -2,10 +2,12 @@ using UnityEngine;
 
 public enum DamageType
 {
+    Normal,
     Physical,
     Magical,
     Fire,
-    Ice
+    Ice,
+    Lightning
 }
 
 public class DamageSystem : MonoBehaviour

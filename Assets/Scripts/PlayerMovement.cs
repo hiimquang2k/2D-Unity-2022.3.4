@@ -17,14 +17,16 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] private TrailRenderer trailRenderer;
     [SerializeField] private float trailTime = 0.5f;
 
+    [Header("Cooldown")]
+    [SerializeField] private CooldownSystem dashCooldownSystem;
+    [SerializeField] private DirectionManager directionManager;
+
     private Rigidbody2D body;
     private Animator anim;
     private BoxCollider2D boxCollider;
-    private Vector2 dashDirection;
 
     private bool canDash = true;
     private bool isDashing = false;
-    public bool IsFacingRight = true;
 
     private float LastOnGroundTime;
     private float LastPressedJumpTime;
@@ -36,11 +38,19 @@ public class PlayerMovement : MonoBehaviour
     private void Awake()
     {
         InitializeComponents();
+        if (dashCooldownSystem == null)
+        {
+            dashCooldownSystem = gameObject.AddComponent<CooldownSystem>();
+        }
+        if (directionManager == null)
+        {
+            directionManager = gameObject.AddComponent<DirectionManager>();
+        }
     }
 
     private void Start()
     {
-        IsFacingRight = true;
+        directionManager.SetInitialDirection(Data.initialDirection);
     }
 
     private void FixedUpdate()
@@ -59,6 +69,10 @@ public class PlayerMovement : MonoBehaviour
         UpdateDash();
         UpdateAnimation();
         UpdateGravity();
+        
+        // Update cooldown
+        dashCooldownSystem.UpdateCooldown();
+        canDash = !dashCooldownSystem.IsOnCooldown;
     }
     #endregion
 
@@ -67,7 +81,6 @@ public class PlayerMovement : MonoBehaviour
     {
         float targetSpeed = horizontal * Data.runMaxSpeed;
         float accelRate = (LastOnGroundTime > 0) ? Data.runAccelAmount : Data.runAccelAmount * Data.accelInAir;
-CheckDirectionToFace(horizontal > 0);
         float speedDif = targetSpeed - body.velocity.x;
         float movement = speedDif * accelRate;
         body.AddForce(movement * Vector2.right, ForceMode2D.Force);
@@ -115,9 +128,9 @@ CheckDirectionToFace(horizontal > 0);
 
     private void UpdateDash()
     {
-        if (Input.GetKeyDown(KeyCode.LeftShift) && canDash && !isDashing)
+        if (Input.GetKeyDown(KeyCode.LeftShift) && canDash)
         {
-            StartCoroutine(DashRoutine());
+            StartCoroutine(Dash());
         }
     }
 
@@ -147,21 +160,7 @@ CheckDirectionToFace(horizontal > 0);
     {
         horizontal = Input.GetAxisRaw("Horizontal");
         vertical = Input.GetAxisRaw("Vertical");
-        dashDirection = new Vector2(horizontal, vertical).normalized;
-
-        if (dashDirection == Vector2.zero)
-            dashDirection = IsFacingRight ? Vector2.right : Vector2.left;
-    }
-
-    private void Flip()
-    {
-        if (IsFacingRight && horizontal < 0f || !IsFacingRight && horizontal > 0f)
-        {
-            IsFacingRight = !IsFacingRight;
-            Vector3 localScale = transform.localScale;
-            localScale.x *= -1f;
-            transform.localScale = localScale;
-        }
+        directionManager.UpdateDirection(horizontal, vertical);
     }
     #endregion
 
@@ -178,21 +177,20 @@ CheckDirectionToFace(horizontal > 0);
     #endregion
 
     #region Dash Methods
-    private IEnumerator DashRoutine()
+    private IEnumerator Dash()
     {
         isDashing = true;
-        canDash = false;
-        float originalGravity = body.gravityScale;
-        body.gravityScale = 0;
-        anim.SetTrigger("Dash");
-        body.velocity = dashDirection * Data.dashSpeed;
-        trailRenderer.emitting = true;
-        yield return new WaitForSeconds(Data.dashDuration);
+        dashCooldownSystem.StartCooldown(Data.dashCooldown);
+        
+        float dashTime = 0f;
+        while (dashTime < Data.dashDuration)
+        {
+            body.velocity = directionManager.GetDirection() * Data.dashSpeed;
+            dashTime += Time.deltaTime;
+            yield return null;
+        }
+
         isDashing = false;
-        body.gravityScale = originalGravity;
-        yield return new WaitForSeconds(Data.dashCooldown);
-        canDash = true;
-        trailRenderer.emitting = false;
     }
     #endregion
 
@@ -228,12 +226,6 @@ CheckDirectionToFace(horizontal > 0);
     #endregion
 
     #region Public Methods
-    public void CheckDirectionToFace(bool isMovingRight)
-    {
-        if (isMovingRight != IsFacingRight)
-            Flip();
-    }
-
     public void SetGravityScale(float scale)
     {
         body.gravityScale = scale;
