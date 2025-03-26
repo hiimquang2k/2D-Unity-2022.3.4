@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections;
 
 public class BlackHoleBoss : MonoBehaviour
 {
@@ -15,16 +16,53 @@ public class BlackHoleBoss : MonoBehaviour
     [Header("Combat Settings")]
     [SerializeField] private float attackCooldown = 3f;
 
+    [Header("Health Settings")]
+    [SerializeField] private HealthData healthData;
+    public float damageReceiveRatio = 0.1f;
+    private HealthSystem healthSystem;
+
     private Transform player;
     private Rigidbody2D rb;
     private float lastBlackHoleTime;
-    private float currentHealth;
 
     private void Start()
     {
         player = GameObject.FindGameObjectWithTag("Player").transform;
         rb = GetComponent<Rigidbody2D>();
-        currentHealth = maxHealth;
+        
+        // Initialize health system
+        healthSystem = GetComponent<HealthSystem>();
+        if (healthSystem == null)
+        {
+            healthSystem = gameObject.AddComponent<HealthSystem>();
+        }
+        healthSystem.CurrentHealth = healthData.maxHealth;
+
+        // Subscribe to death event
+        healthSystem.OnDeath += HandleDeath;
+    }
+
+    private void OnDestroy()
+    {
+        if (healthSystem != null)
+        {
+            healthSystem.OnDeath -= HandleDeath;
+        }
+    }
+
+    private void HandleDeath()
+    {
+        // Add boss death logic here
+        Destroy(gameObject);
+    }
+
+    private void TakeDamage(int damage)
+    {
+        damage = (int)(damage * damageReceiveRatio);
+        if (healthSystem != null)
+        {
+            healthSystem.TakeDamage(damage, DamageType.Normal);
+        }
     }
 
     private void Update()
@@ -55,15 +93,14 @@ public class BlackHoleBoss : MonoBehaviour
         }
         else
         {
-            // Maintain position with slight orbiting
-            Vector2 perpendicularDirection = new Vector2(-directionToPlayer.y, directionToPlayer.x);
-            rb.velocity = perpendicularDirection * (moveSpeed * 0.5f);
+            // Maintain position
+            rb.velocity = Vector2.zero;
         }
     }
 
     private void HandleBlackHoleSpawn()
     {
-        if (Time.time - lastBlackHoleTime > blackHoleSpawnCooldown)
+        if (Time.time - lastBlackHoleTime >= blackHoleSpawnCooldown)
         {
             SpawnBlackHole();
             lastBlackHoleTime = Time.time;
@@ -72,12 +109,23 @@ public class BlackHoleBoss : MonoBehaviour
 
     private void SpawnBlackHole()
     {
-        if (blackHolePrefab != null)
+        if (blackHolePrefab != null && player != null)
         {
-            // Spawn black hole at boss's position
-            GameObject blackHole = Instantiate(blackHolePrefab, transform.position, Quaternion.identity);
-            Destroy(blackHole, blackHoleLifetime);
+            // Spawn black hole at a random position around the boss
+            Vector2 spawnPosition = (Vector2)player.transform.position + 
+                Random.insideUnitCircle * 1f; // 5 units radius
+            
+            GameObject blackHole = Instantiate(blackHolePrefab, spawnPosition, Quaternion.identity);
+            
+            // Add destroy coroutine
+            StartCoroutine(DestroyBlackHoleAfterDelay(blackHole));
         }
+    }
+
+    private IEnumerator DestroyBlackHoleAfterDelay(GameObject blackHole)
+    {
+        yield return new WaitForSeconds(blackHoleLifetime);
+        Destroy(blackHole);
     }
 
     // Visualization for editor

@@ -22,7 +22,7 @@ public class HealthSystem : MonoBehaviour
     [Header("Health Configuration")]
     [SerializeField] private HealthData healthData;
     [SerializeField] private int currentHealth;
-    [SerializeField] private bool isInvulnerable = false;
+    public bool isInvulnerable = false;
 
     private SpriteRenderer spriteRenderer;
     private Color originalColor;
@@ -55,17 +55,14 @@ public class HealthSystem : MonoBehaviour
         CurrentHealth = healthData.maxHealth;
         UpdateUI();
     }
+    
     public void TakeDamage(int damage, DamageType damageType)
     {
         if (damage <= 0) return; // Ensure damage is positive
         if (isInvulnerable || CurrentHealth <= 0) return;
 
-        // Apply damage reduction based on damage type if needed
-        // This is where you could implement resistances or vulnerabilities
-        int damageToApply = damage;
-
         // Apply the damage
-        CurrentHealth = Mathf.Max(0, CurrentHealth - damageToApply);
+        CurrentHealth = Mathf.Max(0, CurrentHealth - damage);
 
         // Visual feedback
         if (spriteRenderer != null && !isFlashing)
