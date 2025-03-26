@@ -292,7 +292,7 @@ GameObject:
   - component: {fileID: 155067313}
   - component: {fileID: 155067312}
   - component: {fileID: 155067311}
-  - component: {fileID: 155067310}
+  - component: {fileID: 155067316}
   - component: {fileID: 155067308}
   - component: {fileID: 155067307}
   m_Layer: 0
@@ -463,31 +463,6 @@ BoxCollider2D:
   serializedVersion: 2
   m_Size: {x: 0.37, y: 0.52}
   m_EdgeRadius: 0
---- !u!114 &155067310
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 155067303}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9b39d830d010ef1479f785303620efd7, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  Data: {fileID: 11400000, guid: 6ac09d0adf6880a4a842d6ab472d9569, type: 2}
-  groundLayer:
-    serializedVersion: 2
-    m_Bits: 64
-  wallLayer:
-    serializedVersion: 2
-    m_Bits: 0
-  obstacleLayer:
-    serializedVersion: 2
-    m_Bits: 0
-  trailRenderer: {fileID: 0}
-  trailTime: 0.5
-  IsFacingRight: 1
 --- !u!114 &155067311
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -576,6 +551,38 @@ MonoBehaviour:
     m_Bits: 8
   attackOrigin: {fileID: 338373140}
   playerMovement: {fileID: 0}
+  cooldownSystem: {fileID: 0}
+  directionManager: {fileID: 0}
+--- !u!114 &155067316
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 155067303}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6ce3056f80f20cb4aab1233012fe87fa, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  body: {fileID: 0}
+  animator: {fileID: 0}
+  boxCollider: {fileID: 0}
+  movementInput: {x: 0, y: 0}
+  lastGroundedTime: 0
+  groundLayer:
+    m_Bits: 0
+  directionManager: {fileID: 0}
+  movementData: {fileID: 11400000, guid: 6ac09d0adf6880a4a842d6ab472d9569, type: 2}
+  obstacleLayer:
+    m_Bits: 64
+  dashCooldownSystem: {fileID: 0}
+  trailRenderer: {fileID: 0}
+  canDash: 1
+  isDashing: 0
+  jumpPressed: 0
+  dashPressed: 0
+  lastJumpRequestTime: 0
 --- !u!1 &315523464
 GameObject:
   m_ObjectHideFlags: 0

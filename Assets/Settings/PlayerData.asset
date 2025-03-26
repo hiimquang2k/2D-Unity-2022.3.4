@@ -18,11 +18,11 @@ MonoBehaviour:
   maxFallSpeed: 4
   fastFallGravityMult: 0
   maxFastFallSpeed: 0
-  runMaxSpeed: 1
-  runAcceleration: 1
-  runAccelAmount: 50
+  runMaxSpeed: 5
+  runAcceleration: 2
+  runAccelAmount: 5
   runDecceleration: 1
-  runDeccelAmount: 50
+  runDeccelAmount: 5
   accelInAir: 0.01
   deccelInAir: 0.01
   doConserveMomentum: 0
@@ -46,3 +46,4 @@ MonoBehaviour:
   coyoteTime: 0.01
   jumpInputBufferTime: 0.5
   attackInputBufferTime: 0.5
+  initialDirection: {x: 1, y: 0}
