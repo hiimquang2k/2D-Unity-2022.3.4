@@ -16,7 +16,7 @@ public class PlayerMovement : MonoBehaviour
     private BoxCollider2D boxCollider;
     private TrailRenderer trailRenderer;
 
-    private CooldownSystem dashCooldownSystem;
+    private CooldownSystem cooldownSystem;
     private DirectionManager directionManager;
 
     // Optimization: Use constants for frequently used values
@@ -70,8 +70,10 @@ public class PlayerMovement : MonoBehaviour
         }
 
         // Update dash cooldown
-        dashCooldownSystem.UpdateCooldown();
-        canDash = !dashCooldownSystem.IsOnCooldown;
+        cooldownSystem.UpdateCooldown();
+        
+        // Check cooldowns
+        canDash = !cooldownSystem.IsOnCooldown("Dash");
     }
 
     private void UpdateInput()
@@ -174,7 +176,7 @@ public class PlayerMovement : MonoBehaviour
     private IEnumerator Dash()
     {
         isDashing = true;
-        dashCooldownSystem.StartCooldown(Data.dashCooldown);
+        cooldownSystem.StartCooldown(Data.dashCooldown, "Dash");
         
         float dashTime = 0f;
         while (dashTime < Data.dashDuration)
@@ -194,7 +196,7 @@ public class PlayerMovement : MonoBehaviour
         boxCollider = GetComponent<BoxCollider2D>();
 
         // Simplified component initialization
-        dashCooldownSystem = GetComponent<CooldownSystem>() ?? gameObject.AddComponent<CooldownSystem>();
+        cooldownSystem = GetComponent<CooldownSystem>() ?? gameObject.AddComponent<CooldownSystem>();
         directionManager = GetComponent<DirectionManager>() ?? gameObject.AddComponent<DirectionManager>();
 
         // Trail renderer setup (optional)

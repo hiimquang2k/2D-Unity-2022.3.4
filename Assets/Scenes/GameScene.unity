@@ -313,7 +313,7 @@ MonoBehaviour:
   distanceThreshold: 1
   directionManager: {fileID: 0}
   blackHolePrefab: {fileID: 952870040888394995, guid: 25166491e7dcca14481e0e1d299e6d3e, type: 3}
-  blackHoleSpawnCooldown: 10
+  blackHoleSpawnCooldown: 99999
   blackHoleLifetime: 5
   healthData: {fileID: 0}
   damageReceiveRatio: 0.1
@@ -467,14 +467,15 @@ GameObject:
   - component: {fileID: 155067304}
   - component: {fileID: 155067306}
   - component: {fileID: 155067305}
-  - component: {fileID: 155067315}
-  - component: {fileID: 155067314}
   - component: {fileID: 155067313}
+  - component: {fileID: 155067314}
+  - component: {fileID: 155067317}
   - component: {fileID: 155067311}
+  - component: {fileID: 155067318}
   - component: {fileID: 155067316}
+  - component: {fileID: 155067315}
   - component: {fileID: 155067308}
   - component: {fileID: 155067307}
-  - component: {fileID: 155067317}
   m_Layer: 0
   m_Name: Martial Hero
   m_TagString: Player
@@ -757,6 +758,90 @@ MonoBehaviour:
   healthData: {fileID: 0}
   currentHealth: 0
   isInvulnerable: 0
+--- !u!114 &155067318
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 155067303}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1e49abfc780f7ed43a5672cf897aad6e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  lightningPrefab: {fileID: 0}
+  lightningCooldown: 2
+  lightningRange: 10
+  teleportEffectPrefab: {fileID: 0}
+  teleportCooldown: 3
+  groundLayer:
+    serializedVersion: 2
+    m_Bits: 64
+  elementalZoneManager: {fileID: 0}
+  directionManager: {fileID: 0}
+--- !u!1 &294973813
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 294973814}
+  m_Layer: 0
+  m_Name: Zone_2
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &294973814
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 294973813}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -4.36, y: 0.17, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 878733619}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &295038814
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 295038815}
+  m_Layer: 0
+  m_Name: Zone_1
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &295038815
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 295038814}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0.1, y: 0.12, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 878733619}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &315523464
 GameObject:
   m_ObjectHideFlags: 0
@@ -1593,7 +1678,7 @@ SpriteRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 90c4f0e7804228e4dabff7620e8797d2, type: 2}
+  - {fileID: 10754, guid: 0000000000000000f000000000000000, type: 0}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -1638,6 +1723,59 @@ Transform:
   m_LocalScale: {x: 0.2, y: 0.2, z: 0.2}
   m_ConstrainProportionsScale: 1
   m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &878733617
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 878733619}
+  - component: {fileID: 878733618}
+  m_Layer: 0
+  m_Name: ElementalZone
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &878733618
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 878733617}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b9153e38a3233b641bfd836119b3481b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  electricZones:
+  - {fileID: 295038815}
+  - {fileID: 294973814}
+  zoneRadius: 2
+  lightningPrefab: {fileID: 0}
+  tagDuration: 5
+  lightningInterval: 1
+--- !u!4 &878733619
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 878733617}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 2.31, y: -0.52, z: 0.0651287}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 295038815}
+  - {fileID: 294973814}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &913359471
@@ -2200,3 +2338,4 @@ SceneRoots:
   - {fileID: 328691786}
   - {fileID: 469017354}
   - {fileID: 154162837}
+  - {fileID: 878733619}

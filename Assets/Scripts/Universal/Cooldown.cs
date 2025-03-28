@@ -1,26 +1,37 @@
 using UnityEngine;
+using System.Collections.Generic;
 
 public class CooldownSystem : MonoBehaviour
 {
-    private float _currentCooldown;
-    private bool _isOnCooldown;
+    private Dictionary<string, float> cooldowns = new Dictionary<string, float>();
+    private Dictionary<string, bool> isOnCooldown = new Dictionary<string, bool>();
 
-    public bool IsOnCooldown => _isOnCooldown;
-
-    public void StartCooldown(float duration)
+    public bool IsOnCooldown(string abilityName)
     {
-        _currentCooldown = duration;
-        _isOnCooldown = true;
+        if (isOnCooldown.TryGetValue(abilityName, out bool isCooldown))
+        {
+            return isCooldown;
+        }
+        return false;
+    }
+
+    public void StartCooldown(float duration, string abilityName)
+    {
+        cooldowns[abilityName] = duration;
+        isOnCooldown[abilityName] = true;
     }
 
     public void UpdateCooldown()
     {
-        if (_isOnCooldown)
+        foreach (var abilityName in new List<string>(isOnCooldown.Keys))
         {
-            _currentCooldown -= Time.deltaTime;
-            if (_currentCooldown <= 0)
+            if (isOnCooldown[abilityName])
             {
-                _isOnCooldown = false;
+                cooldowns[abilityName] -= Time.deltaTime;
+                if (cooldowns[abilityName] <= 0)
+                {
+                    isOnCooldown[abilityName] = false;
+                }
             }
         }
     }
