@@ -7,14 +7,12 @@ public class BlackHoleBoss : MonoBehaviour
     [SerializeField] private float moveSpeed = 5f;
     [SerializeField] private float idealDistance = 10f; // Ideal distance from player
     [SerializeField] private float distanceThreshold = 2f; // Tolerance for ideal distance
+    [SerializeField] private DirectionManager directionManager;
 
     [Header("Black Hole Settings")]
     [SerializeField] private GameObject blackHolePrefab;
     [SerializeField] private float blackHoleSpawnCooldown = 10f;
     [SerializeField] private float blackHoleLifetime = 5f;
-
-    [Header("Combat Settings")]
-    [SerializeField] private float attackCooldown = 3f;
 
     [Header("Health Settings")]
     [SerializeField] private HealthData healthData;
@@ -29,14 +27,20 @@ public class BlackHoleBoss : MonoBehaviour
     {
         player = GameObject.FindGameObjectWithTag("Player").transform;
         rb = GetComponent<Rigidbody2D>();
-        
+        if (directionManager == null)
+        {
+            directionManager = GetComponent<DirectionManager>();
+            if (directionManager == null)
+            {
+                directionManager = gameObject.AddComponent<DirectionManager>();
+            }
+        }
         // Initialize health system
         healthSystem = GetComponent<HealthSystem>();
         if (healthSystem == null)
         {
             healthSystem = gameObject.AddComponent<HealthSystem>();
         }
-        healthSystem.CurrentHealth = healthData.maxHealth;
 
         // Subscribe to death event
         healthSystem.OnDeath += HandleDeath;
@@ -80,6 +84,7 @@ public class BlackHoleBoss : MonoBehaviour
 
         // Determine movement direction
         Vector2 directionToPlayer = (player.position - transform.position).normalized;
+        directionManager.UpdateDirection(directionToPlayer.x, directionToPlayer.y);
         
         if (distanceToPlayer > idealDistance + distanceThreshold)
         {
@@ -111,9 +116,9 @@ public class BlackHoleBoss : MonoBehaviour
     {
         if (blackHolePrefab != null && player != null)
         {
-            // Spawn black hole at a random position around the boss
+            // Spawn black hole at player position
             Vector2 spawnPosition = (Vector2)player.transform.position + 
-                Random.insideUnitCircle * 1f; // 5 units radius
+                Random.insideUnitCircle * 1f; 
             
             GameObject blackHole = Instantiate(blackHolePrefab, spawnPosition, Quaternion.identity);
             

@@ -6,8 +6,7 @@ public enum ElementType
 {
     Fire,
     Ice,
-    Lightning,
-    Poison
+    Lightning
 }
 
 public class ElementalZoneController : MonoBehaviour
@@ -22,7 +21,6 @@ public class ElementalZoneController : MonoBehaviour
     public Color fireColor = Color.red;
     public Color iceColor = Color.cyan;
     public Color lightningColor = Color.yellow;
-    public Color poisonColor = Color.green;
 
     private SpriteRenderer zoneRenderer;
     private bool isTransformed = false;
@@ -133,7 +131,6 @@ public class ElementalZoneController : MonoBehaviour
             ElementType.Fire => fireColor,
             ElementType.Ice => iceColor,
             ElementType.Lightning => lightningColor,
-            ElementType.Poison => poisonColor,
             _ => Color.white
         };
     }

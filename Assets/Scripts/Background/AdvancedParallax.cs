@@ -23,7 +23,6 @@ public class NonOverlappingParallax : MonoBehaviour
     }
 
     [SerializeField] private ParallaxLayer[] layers;
-    [SerializeField] private float smoothing = 1f;
     [SerializeField] private bool debugMode = false; // Toggle to show debug info
 
     private Transform cameraTransform;

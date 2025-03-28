@@ -15,9 +15,11 @@ public class DamageSystem : MonoBehaviour
 {
     public HealthSystem healthSystem; // Reference to the HealthSystem
     private Animator animator; // Animator for triggering animations
-    private int monsterDamage = 10;
-    private DamageType damageType = DamageType.Physical;
-    
+
+    [Header("Invulnerability Settings")]
+    [SerializeField] private bool canTakeDamage = true;
+    [SerializeField] private bool canBeKnockedBack = true;
+
     [Header("Knockback Settings")]
     [SerializeField] private float knockbackForce = 10f; // Force of the knockback
     [SerializeField] private float knockbackDuration = 0.5f; // Duration of the knockback effect
@@ -26,7 +28,8 @@ public class DamageSystem : MonoBehaviour
     private PlayerMovement playerMovement; // Reference to the PlayerMovement component
     private bool isKnockedBack = false; // Flag to track knockback state
     private float knockbackTimer = 0f; // Timer for knockback duration
-    
+    private Vector2 lastDamageSource; // Variable to store the last damage source
+
     private void Start()
     {
         animator = GetComponent<Animator>();
@@ -42,111 +45,95 @@ public class DamageSystem : MonoBehaviour
             knockbackTimer -= Time.deltaTime;
             if (knockbackTimer <= 0)
             {
-                isKnockedBack = false;
-                // Re-enable player movement control after knockback
-                if (playerMovement != null)
-                    playerMovement.enabled = true;
+                ResetKnockback();
             }
         }
     }
 
-    public void TakeDamage(int damage, DamageType damageType)
+    private void ResetKnockback()
     {
-        if (healthSystem != null && !healthSystem.isInvulnerable)
+        isKnockedBack = false;
+        rb.velocity = Vector2.zero; // Stop any remaining velocity
+        
+        // Re-enable player movement control after knockback
+        if (playerMovement != null)
+            playerMovement.enabled = true;
+
+        Debug.Log("Knockback reset completed");
+    }
+
+    public void TakeDamage(int amount, DamageType type = DamageType.Normal, Vector2 damageSource = default)
+    {
+        // Check if we can take damage
+        if (!canTakeDamage)
         {
-            // Apply damage reduction based on damage type
-            int damageToApply = ApplyDamageReduction(damage, damageType);
+            return;
+        }
 
-            // Apply the damage
-            healthSystem.TakeDamage(damageToApply, damageType);
+        // Store the last damage source
+        lastDamageSource = damageSource;
 
-            // Apply knockback if not immune
-            if (!healthSystem.isInvulnerable)
+        // Apply damage
+        healthSystem.TakeDamage(amount, type);
+
+        // Handle knockback if allowed
+        if (canBeKnockedBack)
+        {
+            HandleKnockback();
+        }
+    }
+
+    private void HandleKnockback()
+    {
+        if (rb == null || isKnockedBack || !canBeKnockedBack)
+        {
+            return;
+        }
+
+        // Disable player movement control during knockback
+        if (playerMovement != null)
+        {
+            playerMovement.enabled = false;
+        }
+
+        // Reset velocity and apply knockback force
+        rb.velocity = Vector2.zero;
+        rb.AddForce(GetKnockbackDirection() * knockbackForce, ForceMode2D.Impulse);
+
+        // Start knockback timer
+        isKnockedBack = true;
+        knockbackTimer = knockbackDuration;
+    }
+
+    private Vector2 GetKnockbackDirection()
+    {
+        // Get direction from damage source to player
+        if (lastDamageSource != Vector2.zero)
+        {
+            Vector2 direction = new Vector2(transform.position.x, transform.position.y) - lastDamageSource;
+            if (direction.sqrMagnitude > 0.001f) // Check if direction is non-zero
             {
-                ApplyKnockback();
-            }
-
-            // Trigger animations based on damage type
-            TriggerDamageAnimation(damageType);
-        }
-    }
-
-    private void ApplyKnockback()
-    {
-        if (rb != null && !isKnockedBack)
-        {
-            // Disable player movement control during knockback
-            if (playerMovement != null)
-                playerMovement.enabled = false;
-                
-            // Apply the knockback force
-            rb.velocity = Vector2.zero; // Reset current velocity
-            rb.AddForce(transform.right * knockbackForce, ForceMode2D.Impulse);
-            
-            // Set knockback state
-            isKnockedBack = true;
-            knockbackTimer = knockbackDuration;
-        }
-    }
-
-    private int ApplyDamageReduction(int damage, DamageType damageType)
-    {
-        // Add damage reduction logic here based on damage type
-        // For example:
-        switch (damageType)
-        {
-            case DamageType.Physical:
-                // Apply physical damage reduction
-                return (int)(damage * 0.9f);
-            case DamageType.Magical:
-                // Apply magical damage reduction
-                return (int)(damage * 0.8f);
-            case DamageType.DoT:
-                // Apply DoT damage reduction
-                return (int)(damage * 0.7f);
-            default:
-                return damage;
-        }
-    }
-
-    private void TriggerDamageAnimation(DamageType damageType)
-    {
-        if (animator != null)
-        {
-            // Trigger different animations based on damage type
-            switch (damageType)
-            {
-                case DamageType.Physical:
-                    animator.SetTrigger("PhysicalDamage");
-                    break;
-                case DamageType.Magical:
-                    animator.SetTrigger("MagicalDamage");
-                    break;
-                case DamageType.Fire:
-                    animator.SetTrigger("FireDamage");
-                    break;
-                case DamageType.Ice:
-                    animator.SetTrigger("IceDamage");
-                    break;
-                case DamageType.Lightning:
-                    animator.SetTrigger("LightningDamage");
-                    break;
-                case DamageType.DoT:
-                    animator.SetTrigger("DoTDamage");
-                    break;
-                default:
-                    animator.SetTrigger("Damage");
-                    break;
+                return direction.normalized;
             }
         }
+        
+        // Default to upward knockback if no valid damage source
+        return Vector2.up;
     }
 
-    // Method to handle collision with monsters
-    private void OnTriggerEnter2D(Collider2D collision)
+    public void SetDamageable(bool canTakeDamage)
     {
-        if (collision.CompareTag("Monster") && !healthSystem.isInvulnerable)
+        this.canTakeDamage = canTakeDamage;
+    }
+
+    public void SetKnockbackable(bool canBeKnockedBack)
+    {
+        this.canBeKnockedBack = canBeKnockedBack;
+
+        // If we're disabling knockback and currently knocked back, reset immediately
+        if (!canBeKnockedBack && isKnockedBack)
         {
-            TakeDamage(monsterDamage, damageType);
+            ResetKnockback();
         }
     }
 }

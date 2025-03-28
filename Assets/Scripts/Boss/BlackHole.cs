@@ -11,46 +11,39 @@ public class BlackHole : MonoBehaviour
     private bool isPlayerInDamageRadius = false;
 
     private void Update()
+{
+    Collider2D[] nearbyObjects = Physics2D.OverlapCircleAll(transform.position, pullRadius); 
+    foreach (Collider2D obj in nearbyObjects)
     {
-        Collider2D[] nearbyObjects = Physics2D.OverlapCircleAll(transform.position, pullRadius);
-        
-        foreach (Collider2D obj in nearbyObjects)
+        Rigidbody2D rb = obj.GetComponent<Rigidbody2D>();
+        if (rb != null && obj.CompareTag("Player"))
         {
-            Rigidbody2D rb = obj.GetComponent<Rigidbody2D>();
-            if (rb != null && obj.CompareTag("Player"))
-            {
-                Vector2 directionToBlackHole = (transform.position - obj.transform.position).normalized;
-                rb.AddForce(directionToBlackHole * pullForce, ForceMode2D.Force);
+            Vector2 directionToBlackHole = (transform.position - obj.transform.position).normalized;
+            rb.AddForce(directionToBlackHole * pullForce, ForceMode2D.Force);
 
-                // Check for collision and apply damage
-                float distance = Vector2.Distance(transform.position, obj.transform.position);
-                if (distance < damageRadius)
+            // Check for collision and apply damage
+            float distance = Vector2.Distance(transform.position, obj.transform.position);
+            if (distance < damageRadius)
+            {
+                if (!isPlayerInDamageRadius)
                 {
-                    if (!isPlayerInDamageRadius)
-                    {
-                        // Player just entered damage radius
-                        isPlayerInDamageRadius = true;
-                        HandlePlayerCollision(obj);
-                    }
-                }
-                else if (isPlayerInDamageRadius)
-                {
-                    // Player just exited damage radius
-                    isPlayerInDamageRadius = false;
-                    ResetPlayerInvulnerability(obj);
+                    // Player just entered damage radius
+                    isPlayerInDamageRadius = true;
+                    HandlePlayerCollision(obj);
                 }
             }
         }
     }
+}
 
     private void HandlePlayerCollision(Collider2D playerCollider)
     {
         DamageSystem damageSystem = playerCollider.GetComponentInParent<DamageSystem>();
         if (damageSystem != null)
         {
-            // Make player immune to knockback while in black hole
-            damageSystem.healthSystem.isInvulnerable = true;
-            
+            // Disable knockback while in black hole
+            damageSystem.SetKnockbackable(false);
+        
             // Start damage coroutine
             StartCoroutine(ApplyDoTDamage(damageSystem));
         }
@@ -71,7 +64,39 @@ public class BlackHole : MonoBehaviour
         DamageSystem damageSystem = playerCollider.GetComponentInParent<DamageSystem>();
         if (damageSystem != null)
         {
-            damageSystem.healthSystem.isInvulnerable = false;
+            // Reset knockback state
+            damageSystem.SetKnockbackable(true);
+        
+            // Reset damage state
+            damageSystem.SetDamageable(true);
+            Debug.Log("Reset player invulnerability successfully");
+        }
+
+        if (damageSystem == null)
+        {
+            Debug.LogError("Invalid damage system");
+        }
+    }
+    private void OnDestroy()
+    {
+        // Store the player collider before destruction
+        Collider2D playerCollider = null;
+        
+        // Check for nearby player
+        Collider2D[] nearbyObjects = Physics2D.OverlapCircleAll(transform.position, pullRadius);
+        foreach (Collider2D obj in nearbyObjects)
+        {
+            if (obj.CompareTag("Player"))
+            {
+                playerCollider = obj;
+                break;
+            }
+        }
+
+        // Reset player invulnerability if player was in damage radius
+        if (isPlayerInDamageRadius && playerCollider != null)
+        {
+            ResetPlayerInvulnerability(playerCollider);
         }
     }
 

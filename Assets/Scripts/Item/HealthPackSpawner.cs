@@ -4,7 +4,6 @@ public class HealthPackSpawner : MonoBehaviour
 {
     [SerializeField] private GameObject healthPackPrefab;
     [SerializeField] private Transform platformPos;
-    [SerializeField] private float spawnInterval = 30f;
     [SerializeField] private int maxHealthPacks = 5;
     [SerializeField] private float a;
     [SerializeField] private float b;

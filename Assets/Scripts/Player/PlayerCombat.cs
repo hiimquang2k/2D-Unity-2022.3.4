@@ -37,6 +37,8 @@ public class PlayerCombat : MonoBehaviour
     {
         if (playerMovement == null)
             playerMovement = GetComponent<PlayerMovement>();
+        if (directionManager == null)
+            directionManager = GetComponent<DirectionManager>();
     }
 
     void Update()
@@ -89,12 +91,24 @@ public class PlayerCombat : MonoBehaviour
     // Called by animation event in both animations when attack point is reached
     public void PerformAttack()
     {
+        if (directionManager == null)
+        {
+            Debug.LogError("DirectionManager is not assigned!");
+            return;
+        }
+
+        if (attackOrigin == null)
+        {
+            Debug.LogError("AttackOrigin is not assigned!");
+            return;
+        }
+
         Vector2 direction = directionManager.GetDirection();
-        RaycastHit2D hit = Physics2D.Raycast(attackOrigin.position, direction, attackDistance, enemyLayer);
+        RaycastHit2D hit = Physics2D.Raycast(attackOrigin.position, direction, attackDistance);
 
         Debug.DrawRay(attackOrigin.position, direction * attackDistance, Color.red, 0.2f);
 
-        if (hit.collider != null)
+        if (hit.collider != null && hit.collider.CompareTag("Monster"))
         {
             Debug.Log("Hit enemy: " + hit.collider.name);
 
