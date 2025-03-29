@@ -1,185 +1,121 @@
 using UnityEngine;
-using System.Collections;
 using System.Collections.Generic;
 
-public enum ElementType 
+public class ElementalZoneManager : MonoBehaviour
 {
-    Fire,
-    Ice,
-    Lightning
-}
-
-public class ElementalZoneController : MonoBehaviour
-{
-    [Header("Zone Transformation Settings")]
-    public ElementType elementType;
-    public float zoneDuration = 5f;
-    public float damageTickInterval = 0.5f;
-    public float damageAmount = 10f;
-
-    [Header("Visual Effects")]
-    public Color fireColor = Color.red;
-    public Color iceColor = Color.cyan;
-    public Color lightningColor = Color.yellow;
-
-    private SpriteRenderer zoneRenderer;
-    private bool isTransformed = false;
-    private List<Collider2D> activeEnemiesInZone = new List<Collider2D>();
-
-    private void Start()
+    [System.Serializable]
+    public enum ElementType
     {
-        zoneRenderer = GetComponent<SpriteRenderer>();
-        if (zoneRenderer == null)
-        {
-            zoneRenderer = gameObject.AddComponent<SpriteRenderer>();
-        }
+        Electric
     }
 
-    private void OnTriggerEnter2D(Collider2D other)
-    {
-        // Check if player with specific element enters
-        PlayerElementController playerElement = other.GetComponent<PlayerElementController>();
-        if (playerElement != null && playerElement.currentElement == this.elementType)
-        {
-            TransformZone();
-        }
+    [SerializeField] public List<Transform> electricZones;
+    [SerializeField] public float zoneRadius = 5f;
+    [SerializeField] private GameObject lightningPrefab;
 
-        // Track enemies in the zone
-        HealthSystem enemyHealth = other.GetComponent<HealthSystem>();
-        if (enemyHealth != null && isTransformed)
-        {
-            activeEnemiesInZone.Add(other);
-        }
+    // Tagging Configuration
+    [SerializeField] private float tagDuration = 5f;
+    [SerializeField] private float lightningInterval = 1f;
+
+    private List<GameObject> taggedMonsters = new List<GameObject>();
+    private float lastLightningStrikeTime;
+
+    void Update()
+    {
+        HandleMonsterTagging();
+        HandleLightningStrikes();
+        CleanupExpiredTags();
     }
 
-    private void OnTriggerExit2D(Collider2D other)
+    void HandleMonsterTagging()
     {
-        // Remove enemies leaving the zone
-        if (activeEnemiesInZone.Contains(other))
+        foreach (Transform zoneTransform in electricZones)
         {
-            activeEnemiesInZone.Remove(other);
-        }
-    }
+            // Find all colliders in the zone
+            Collider2D[] colliders = Physics2D.OverlapCircleAll(
+                zoneTransform.position, 
+                zoneRadius
+            );
 
-    private void TransformZone()
-    {
-        if (isTransformed) return;
-
-        isTransformed = true;
-        StartCoroutine(ZoneTransformationRoutine());
-    }
-
-    private IEnumerator ZoneTransformationRoutine()
-    {
-        // Apply zone color based on element type
-        Color zoneColor = GetElementColor();
-        zoneRenderer.color = zoneColor;
-
-        // Start damage ticking
-        StartCoroutine(ApplyElementalDamage());
-
-        // Wait for duration
-        yield return new WaitForSeconds(zoneDuration);
-
-        // Reset zone
-        ResetZone();
-    }
-
-    private IEnumerator ApplyElementalDamage()
-    {
-        while (isTransformed)
-        {
-            // Damage all enemies in the zone
-            foreach (Collider2D enemy in activeEnemiesInZone)
+            foreach (Collider2D collider in colliders)
             {
-                HealthSystem enemyHealth = enemy.GetComponent<HealthSystem>();
-                if (enemyHealth != null)
+                // Specifically check for monsters by tag
+                if (collider.gameObject.CompareTag("Monster"))
                 {
-                    ApplyElementalDamageEffect(enemyHealth);
+                    TagMonster(collider.gameObject);
                 }
             }
-
-            yield return new WaitForSeconds(damageTickInterval);
         }
     }
 
-    private void ApplyElementalDamageEffect(HealthSystem enemyHealth)
+    void TagMonster(GameObject monster)
     {
-        DamageType damageType = GetDamageTypeForElement(elementType);
-        enemyHealth.TakeDamage(Mathf.RoundToInt(damageAmount), damageType);
-    }
-
-    private DamageType GetDamageTypeForElement(ElementType element)
-    {
-        switch (element)
+        // Prevent duplicates
+        if (!taggedMonsters.Contains(monster))
         {
-            case ElementType.Fire:
-                return DamageType.Fire;
-            case ElementType.Ice:
-                return DamageType.Ice;
-            case ElementType.Lightning:
-                return DamageType.Lightning;
-            default:
-                return DamageType.Normal;
+            taggedMonsters.Add(monster);
+            
+            // Optional: Visual feedback for tagging
+            ApplyTagEffects(monster);
         }
     }
 
-    private Color GetElementColor()
+    void HandleLightningStrikes()
     {
-        return elementType switch
+        if (Time.time - lastLightningStrikeTime >= lightningInterval)
         {
-            ElementType.Fire => fireColor,
-            ElementType.Ice => iceColor,
-            ElementType.Lightning => lightningColor,
-            _ => Color.white
-        };
-    }
-
-    private void ResetZone()
-    {
-        isTransformed = false;
-        zoneRenderer.color = Color.white;
-        activeEnemiesInZone.Clear();
-    }
-}
-
-// Companion Player Element Controller
-public class PlayerElementController : MonoBehaviour
-{
-    public ElementType currentElement = ElementType.Fire;
-
-    public void ChangeElement(ElementType newElement)
-    {
-        currentElement = newElement;
-    }
-}
-
-// Additional Enemy Movement Script for Slow Effect
-public class EnemyMovement : MonoBehaviour
-{
-    public float normalSpeed = 5f;
-    private float currentSpeed;
-    private Coroutine slowCoroutine;
-
-    private void Start()
-    {
-        currentSpeed = normalSpeed;
-    }
-
-    public void SlowDown()
-    {
-        // Stop any existing slow coroutine
-        if (slowCoroutine != null)
-        {
-            StopCoroutine(slowCoroutine);
+            foreach (GameObject taggedMonster in taggedMonsters)
+            {
+                if (taggedMonster != null)
+                {
+                    SummonLightningStrike(taggedMonster);
+                }
+            }
+            lastLightningStrikeTime = Time.time;
         }
-        slowCoroutine = StartCoroutine(SlowDownRoutine());
     }
 
-    private IEnumerator SlowDownRoutine()
+    void SummonLightningStrike(GameObject taggedMonster)
     {
-        currentSpeed *= 0.5f;
-        yield return new WaitForSeconds(2f);
-        currentSpeed = normalSpeed;
+        if (lightningPrefab != null)
+        {
+            // Instantiate lightning effect
+            Instantiate(lightningPrefab, taggedMonster.transform.position, Quaternion.identity);
+            
+            // Optional: Apply damage
+            ApplyLightningDamage(taggedMonster);
+        }
+    }
+
+    void CleanupExpiredTags()
+    {
+        // Remove null references
+        taggedMonsters.RemoveAll(monster => monster == null);
+    }
+
+    void ApplyTagEffects(GameObject monster)
+    {
+        // Optional: Visual or audio feedback when tagging
+        Debug.Log($"Monster tagged: {monster.name}");
+    }
+
+    void ApplyLightningDamage(GameObject monster)
+    {
+        // Basic damage application
+        HealthSystem monsterHealth = monster.GetComponent<HealthSystem>();
+        if (monsterHealth != null)
+        {
+            monsterHealth.TakeDamage(10, DamageType.Lightning);
+        }
+    }
+
+    void OnDrawGizmosSelected()
+    {
+        // Visualize electric zones in scene view
+        Gizmos.color = Color.yellow;
+        foreach (Transform zoneTransform in electricZones)
+        {
+            Gizmos.DrawWireSphere(zoneTransform.position, zoneRadius);
+        }
     }
 }

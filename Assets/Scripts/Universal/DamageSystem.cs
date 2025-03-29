@@ -35,6 +35,7 @@ public class DamageSystem : MonoBehaviour
         animator = GetComponent<Animator>();
         rb = GetComponent<Rigidbody2D>();
         playerMovement = GetComponent<PlayerMovement>();
+        healthSystem = GetComponent<HealthSystem>();
     }
 
     private void Update()

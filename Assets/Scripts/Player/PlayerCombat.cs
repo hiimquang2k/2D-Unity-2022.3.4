@@ -63,7 +63,7 @@ public class PlayerCombat : MonoBehaviour
     {
         // Manage cooldown
         cooldownSystem.UpdateCooldown();
-        canAttack = !cooldownSystem.IsOnCooldown;
+        canAttack = !cooldownSystem.IsOnCooldown("Attack");
 
         // Reset combo if window expires
         if (Time.time - lastAttackTime > comboWindow && comboCount > 0)
@@ -95,7 +95,7 @@ public class PlayerCombat : MonoBehaviour
         else if (comboCount == 2)
         {
             anim.Play("Attack2");
-            cooldownSystem.StartCooldown(attackCooldown);
+            cooldownSystem.StartCooldown(attackCooldown, "Attack");
             ResetCombo();
         }
     }
