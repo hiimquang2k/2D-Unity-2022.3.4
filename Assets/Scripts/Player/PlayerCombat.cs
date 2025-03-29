@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections;
 
 public class PlayerCombat : MonoBehaviour
 {
@@ -18,15 +19,32 @@ public class PlayerCombat : MonoBehaviour
     [SerializeField] private CooldownSystem cooldownSystem;
     [SerializeField] private DirectionManager directionManager;
 
+    [Header("Hitstop Settings")]
+    [SerializeField] private float hitstopDuration = 0.1f;
+    [SerializeField] private float hitstopTimeScale = 0.05f;
+
+    [Header("Effects")]
+    [SerializeField] private GameObject hitEffectPrefab;
+    [SerializeField] private AudioClip hitSound1;
+    [SerializeField] private AudioClip hitSound2;
+    
     private int comboCount = 0;
     private float lastAttackTime = 0f;
     private bool canAttack = true;
     private Animator anim;
     private bool comboEnabled = false;
+    private AudioSource audioSource;
 
     private void Awake()
     {
         anim = GetComponent<Animator>();
+        audioSource = GetComponent<AudioSource>();
+        
+        if (audioSource == null)
+        {
+            audioSource = gameObject.AddComponent<AudioSource>();
+        }
+        
         if (cooldownSystem == null)
         {
             cooldownSystem = gameObject.AddComponent<CooldownSystem>();
@@ -112,14 +130,60 @@ public class PlayerCombat : MonoBehaviour
         {
             Debug.Log("Hit enemy: " + hit.collider.name);
 
+            // Get hit position for VFX
+            Vector2 hitPosition = hit.point;
+
             HealthSystem enemyHealth = hit.collider.GetComponent<HealthSystem>();
             if (enemyHealth != null)
             {
                 // Apply different damage based on which attack in the combo
                 int damageToApply = (comboCount == 1) ? attackDamage1 : attackDamage2;
                 enemyHealth.TakeDamage(damageToApply, DamageType.Physical);
+                
+                // Apply hitstop
+                StartCoroutine(ApplyHitstop(hitstopDuration, hitstopTimeScale));
+                
+                // Play hit VFX at contact point
+                if (hitEffectPrefab != null)
+                {
+                    Instantiate(hitEffectPrefab, hitPosition, Quaternion.identity);
+                }
+                
+                // Play hit sound
+                PlayHitSound();
             }
         }
+    }
+
+    // Play appropriate hit sound based on combo count
+    private void PlayHitSound()
+    {
+        if (audioSource != null)
+        {
+            AudioClip clipToPlay = (comboCount == 1) ? hitSound1 : hitSound2;
+            
+            if (clipToPlay != null)
+            {
+                audioSource.pitch = Random.Range(0.95f, 1.05f); // Slight variation
+                audioSource.PlayOneShot(clipToPlay);
+            }
+        }
+    }
+
+    // Hitstop coroutine
+    private IEnumerator ApplyHitstop(float duration, float timeScale)
+    {
+        // Store original time scale
+        float originalTimeScale = Time.timeScale;
+        
+        // Apply hitstop (slow time)
+        Time.timeScale = timeScale;
+        
+        // Wait for the duration (in real time, not game time)
+        yield return new WaitForSecondsRealtime(duration);
+        
+        // Restore original time scale
+        Time.timeScale = originalTimeScale;
     }
 
     // Called by animation event at the end of Attack1
