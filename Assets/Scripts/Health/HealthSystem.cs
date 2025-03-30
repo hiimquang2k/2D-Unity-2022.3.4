@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using System.Collections;
 using System;
+using Cinemachine;
 
 // Create a scriptable object to store health data
 [CreateAssetMenu(fileName = "NewHealthData", menuName = "Game/Health Data")]
@@ -9,7 +10,7 @@ public class HealthData : ScriptableObject
 {
     [Header("Health Settings")]
     public int maxHealth = 100;
-    public float invulnerabilityDuration = 1.0f;
+    public float invulnerabilityDuration = 0.1f;
     
     [Header("Visual Feedback")]
     public float flashDuration = 0.1f;
@@ -55,14 +56,44 @@ public class HealthSystem : MonoBehaviour
         CurrentHealth = healthData.maxHealth;
         UpdateUI();
     }
-    
+
     public void TakeDamage(int damage, DamageType damageType)
     {
+        Debug.Log("HealthSystem: Taking damage: " + damage + " to " + gameObject.name);
+        
         if (damage <= 0) return; // Ensure damage is positive
         if (isInvulnerable || CurrentHealth <= 0) return;
 
+        int previousHealth = CurrentHealth;
+        
         // Apply the damage
         CurrentHealth = Mathf.Max(0, CurrentHealth - damage);
+
+        // Only trigger shake if damage was actually taken
+        if (CurrentHealth < previousHealth)
+        {
+            Debug.Log("HealthSystem: Damage taken, triggering camera shake");
+            
+            // Find the Cinemachine Virtual Camera and get the camera shake component
+            CinemachineVirtualCamera virtualCamera = FindObjectOfType<CinemachineVirtualCamera>();
+            if (virtualCamera != null)
+            {
+                ImprovedCameraShake cameraShake = virtualCamera.GetComponent<ImprovedCameraShake>();
+                if (cameraShake != null)
+                {
+                    Debug.Log("HealthSystem: Found camera shake component");
+                    cameraShake.TriggerCameraShake(gameObject);
+                }
+                else
+                {
+                    Debug.LogError("HealthSystem: Camera shake component not found on Cinemachine Virtual Camera!");
+                }
+            }
+            else
+            {
+                Debug.LogError("HealthSystem: Cinemachine Virtual Camera not found!");
+            }
+        }
 
         // Visual feedback
         if (spriteRenderer != null && !isFlashing)

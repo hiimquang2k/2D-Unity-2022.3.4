@@ -61,11 +61,19 @@ public class HealthPopupManager : MonoBehaviour
         if (combinePopups)
         {
             List<HealthSystem> systemsToProcess = new List<HealthSystem>();
+            List<HealthSystem> systemsToRemove = new List<HealthSystem>();
             
             foreach (var entry in recentPopups)
             {
                 HealthSystem healthSystem = entry.Key;
                 PopupData popupData = entry.Value;
+                
+                // Check if the health system still exists
+                if (healthSystem == null)
+                {
+                    systemsToRemove.Add(healthSystem);
+                    continue;
+                }
                 
                 // Check if enough time has passed to display the combined popup
                 if (!popupData.processed && Time.time - popupData.timestamp >= combineTimeWindow)
@@ -78,6 +86,12 @@ public class HealthPopupManager : MonoBehaviour
             foreach (var healthSystem in systemsToProcess)
             {
                 DisplayCombinedPopup(healthSystem);
+            }
+            
+            // Remove any null health systems
+            foreach (var healthSystem in systemsToRemove)
+            {
+                recentPopups.Remove(healthSystem);
             }
         }
     }

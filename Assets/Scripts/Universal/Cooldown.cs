@@ -31,6 +31,7 @@ public class CooldownSystem : MonoBehaviour
                 if (cooldowns[abilityName] <= 0)
                 {
                     isOnCooldown[abilityName] = false;
+                    cooldowns[abilityName] = 0f; // Reset cooldown to 0 when done
                 }
             }
         }

@@ -71,6 +71,13 @@ public class DamageSystem : MonoBehaviour
             return;
         }
 
+        // Prevent self-damage by checking if the damage source is from the same object
+        if (damageSource != default && 
+            Vector2.Distance(damageSource, transform.position) < 0.1f) // Small threshold to account for floating point precision
+        {
+            return;
+        }
+
         // Store the last damage source
         lastDamageSource = damageSource;
 

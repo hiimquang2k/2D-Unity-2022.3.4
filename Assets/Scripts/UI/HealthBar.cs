@@ -26,7 +26,7 @@ public class HealthBar : MonoBehaviour
     {
         if (healthSystem == null)
         {
-            healthSystem = FindObjectOfType<HealthSystem>();
+            healthSystem = GameObject.FindWithTag("Player").GetComponent<HealthSystem>();
             if (healthSystem == null)
             {
                 Debug.LogError("No HealthSystem found for HealthBar!");
