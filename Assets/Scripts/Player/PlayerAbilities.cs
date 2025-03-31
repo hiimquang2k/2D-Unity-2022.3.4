@@ -20,14 +20,17 @@ public class PlayerAbilities : MonoBehaviour
     private CooldownSystem cooldownSystem;
     private PlayerMovement playerMovement;
     private Transform playerTransform;
+    private Collider2D characterCollider;
 
     private void Awake()
     {
         playerTransform = transform;
+        characterCollider = GetComponent<Collider2D>();
         if (cooldownSystem == null)
         {
             cooldownSystem = gameObject.AddComponent<CooldownSystem>();
         }
+        
     }
 
     private void Start()
@@ -41,6 +44,7 @@ public class PlayerAbilities : MonoBehaviour
     {
         HandleLightningStrike();
         HandleTeleport();
+        cooldownSystem.UpdateCooldown();
     }
 
     private void HandleLightningStrike()
@@ -159,10 +163,30 @@ public class PlayerAbilities : MonoBehaviour
             Vector2 position = center + new Vector2(Mathf.Cos(angle) * distance, Mathf.Sin(angle) * distance);
 
             // Check if position is valid (on ground)
-            RaycastHit2D hit = Physics2D.Raycast(position, Vector2.zero, 0f, groundLayer);
-            if (hit)
+            if (characterCollider != null)
             {
-                return position;
+                // Get the character's collider bounds
+                Bounds bounds = characterCollider.bounds;
+                
+                // Check ground below the character's feet
+                RaycastHit2D hit = Physics2D.Raycast(position + new Vector2(0, bounds.extents.y), Vector2.down, bounds.extents.y * 2f, groundLayer);
+                
+                // Check if there's enough space for the character
+                Collider2D[] colliders = Physics2D.OverlapBoxAll(position, bounds.size, 0, groundLayer);
+                
+                if (hit && colliders.Length == 0) // Ground hit and no obstacles
+                {
+                    return position;
+                }
+            }
+            else
+            {
+                // Fallback to simple raycast if no collider
+                RaycastHit2D hit = Physics2D.Raycast(position, Vector2.down, 0.5f, groundLayer);
+                if (hit)
+                {
+                    return position;
+                }
             }
         }
 
@@ -212,6 +236,11 @@ public class PlayerAbilities : MonoBehaviour
     
     // Get the TeleportEffect component and set its type
     TeleportEffect teleportEffect = effect.GetComponent<TeleportEffect>();
+    if (teleportEffect == null)
+    {
+        Debug.LogError("Teleport effect prefab does not have a TeleportEffect component!");
+        return;
+    }
     if (isOrigin)
     {
         teleportEffect.SetType(TeleportEffect.TeleportEffectType.Origin);
