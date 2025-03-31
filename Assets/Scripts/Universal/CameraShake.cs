@@ -87,8 +87,21 @@ public class ImprovedCameraShake : MonoBehaviour
     {
         Debug.Log("CameraShake: Triggering shake for entity: " + entity.name + ", Tag: " + entity.tag);
         
-        // Adjust shake intensity based on entity type
-        float shakeIntensity = entity.CompareTag("Player") ? playerShakeIntensity : monsterShakeIntensity;
+        // Determine shake intensity based on entity type
+        float shakeIntensity = 0f;
+        if (entity.CompareTag("Player"))
+        {
+            shakeIntensity = playerShakeIntensity;
+        }
+        else if (entity.CompareTag("Monster"))
+        {
+            shakeIntensity = monsterShakeIntensity;
+        }
+        else
+        {
+            // Default intensity for other entities
+            shakeIntensity = playerShakeIntensity;
+        }
         
         // Use Cinemachine's noise system if available
         if (noiseComponent != null)
@@ -99,22 +112,20 @@ public class ImprovedCameraShake : MonoBehaviour
             if (isShaking)
             {
                 currentShakeIntensity = Mathf.Max(currentShakeIntensity, shakeIntensity);
-                
-                // Stop the existing coroutine to start a new one
-                if (shakeCoroutine != null)
-                {
-                    StopCoroutine(shakeCoroutine);
-                }
             }
             else
             {
                 currentShakeIntensity = shakeIntensity;
             }
-
+            
             currentShakeDuration = shakeDuration;
             isShaking = true;
             
-            // Start the shake coroutine
+            // Start the shake coroutine if not already running
+            if (shakeCoroutine != null)
+            {
+                StopCoroutine(shakeCoroutine);
+            }
             shakeCoroutine = StartCoroutine(CinemachineShake());
         }
         else
@@ -125,30 +136,26 @@ public class ImprovedCameraShake : MonoBehaviour
 
     private IEnumerator CinemachineShake()
     {
-        Debug.Log("CameraShake: Starting coroutine with intensity: " + currentShakeIntensity);
-        
-        // Set initial noise values
-        noiseComponent.m_AmplitudeGain = currentShakeIntensity;
-        noiseComponent.m_FrequencyGain = 1f;
-        
-        float elapsedTime = 0f;
-        
-        while (elapsedTime < currentShakeDuration)
+        while (currentShakeDuration > 0f)
         {
-            // Gradually reduce the shake intensity
-            float remainingIntensity = Mathf.Lerp(currentShakeIntensity, 0f, elapsedTime / currentShakeDuration);
-            noiseComponent.m_AmplitudeGain = remainingIntensity;
-            
-            elapsedTime += Time.deltaTime * decreaseFactor;
+            if (noiseComponent != null)
+            {
+                noiseComponent.m_AmplitudeGain = currentShakeIntensity;
+                noiseComponent.m_FrequencyGain = currentShakeIntensity;
+            }
+
+            currentShakeDuration -= Time.deltaTime;
             yield return null;
         }
-        
-        // Reset noise values
-        noiseComponent.m_AmplitudeGain = 0f;
-        noiseComponent.m_FrequencyGain = 0f;
+
+        if (noiseComponent != null)
+        {
+            noiseComponent.m_AmplitudeGain = 0f;
+            noiseComponent.m_FrequencyGain = 0f;
+        }
+
         isShaking = false;
-        
-        Debug.Log("CameraShake: Shake complete");
+        currentShakeIntensity = 0f;
     }
 
     private void SubscribeToHealthSystem(HealthSystem healthSystem)

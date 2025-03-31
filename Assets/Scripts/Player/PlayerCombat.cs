@@ -4,6 +4,7 @@ using System.Collections;
 public class PlayerCombat : MonoBehaviour
 {
     public DamageSystem damageSystem;
+    public ImprovedCameraShake cameraShake;
 
     [Header("Attack Settings")]
     [SerializeField] private int attackDamage1 = 20;
@@ -48,6 +49,16 @@ public class PlayerCombat : MonoBehaviour
         if (cooldownSystem == null)
         {
             cooldownSystem = gameObject.AddComponent<CooldownSystem>();
+        }
+
+        // Find or assign camera shake component
+        if (cameraShake == null)
+        {
+            cameraShake = FindObjectOfType<ImprovedCameraShake>();
+            if (cameraShake == null)
+            {
+                Debug.LogError("CameraShake component not found in the scene!");
+            }
         }
     }
 
@@ -151,6 +162,12 @@ public class PlayerCombat : MonoBehaviour
                 
                 // Play hit sound
                 PlayHitSound();
+                
+                // Trigger camera shake on hit only if the player is the attacker
+                if (cameraShake != null && gameObject.CompareTag("Player") && hit.collider.CompareTag("Monster"))
+                {
+                    cameraShake.TriggerCameraShake(gameObject);
+                }
             }
         }
     }
