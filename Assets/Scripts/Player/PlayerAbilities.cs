@@ -234,21 +234,8 @@ public class PlayerAbilities : MonoBehaviour
     // You can create a prefab for this effect
     GameObject effect = Instantiate(teleportEffectPrefab, position, Quaternion.identity);
     
-    // Get the TeleportEffect component and set its type
-    TeleportEffect teleportEffect = effect.GetComponent<TeleportEffect>();
-    if (teleportEffect == null)
-    {
-        Debug.LogError("Teleport effect prefab does not have a TeleportEffect component!");
-        return;
-    }
-    if (isOrigin)
-    {
-        teleportEffect.SetType(TeleportEffect.TeleportEffectType.Origin);
-    }
-    else
-    {
-        teleportEffect.SetType(TeleportEffect.TeleportEffectType.Destination);
-    }
+    // Destroy the effect after a short duration
+    Destroy(effect, 0.5f);
 }
 
     private IEnumerator PreventMovementAfterTeleport()
