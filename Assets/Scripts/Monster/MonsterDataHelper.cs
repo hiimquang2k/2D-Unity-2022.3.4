@@ -1,79 +1,48 @@
-// MonsterDataHelper.cs
 using UnityEngine;
-using UnityEditor;
-using System.IO;
-using System.Linq;
 
 public static class MonsterDataHelper
 {
-    public static MonsterData GetOrCreateMonsterData(MonsterType type)
+    public static MonsterData CreateDefaultMonsterData(MonsterType type)
     {
-        string assetName = type.ToString() + "Data";
-        string path = "Assets/Resources/MonsterData/";
-        string assetPath = path + assetName + ".asset";
-
-        // Check if the asset exists
-        if (File.Exists(assetPath))
-        {
-            return AssetDatabase.LoadAssetAtPath<MonsterData>(assetPath);
-        }
-
-        // Create the directory if it doesn't exist
-        if (!Directory.Exists(path))
-        {
-            Directory.CreateDirectory(path);
-        }
-
-        // Create new MonsterData
         MonsterData data = ScriptableObject.CreateInstance<MonsterData>();
-        data.type = type;
-
-        // Set default values based on monster type
         switch (type)
         {
-            case MonsterType.Goblin:
-                data.baseHealth = 50;
-                data.moveSpeed = 3f;
-                data.attackDamage = 10;
-                data.attackRange = 1f;
-                data.attackCooldown = 1f;
-                data.canPatrol = true;
-                data.canChase = false;
-                break;
-
-            case MonsterType.Orc:
-                data.baseHealth = 100;
-                data.moveSpeed = 2f;
-                data.attackDamage = 15;
-                data.attackRange = 1.5f;
+            case MonsterType.Slime:
+                data.monsterType = MonsterType.Slime;
+                data.maxHealth = 50;
+                data.damage = 10f;
                 data.attackCooldown = 1.5f;
-                data.canChase = true;
+                data.attackRange = 1f;
+                data.patrolSpeed = 2f;
+                data.chaseSpeed = 3f;
+                data.patrolTime = 2f;
+                data.aggroRange = 5f;
+                data.idleTime = 1f;
+                data.chaseTime = 2f;
+                data.attackDuration = 0.5f;
+                data.deathDuration = 1f;
+                data.healthBarColor = Color.green;
                 break;
-
-            case MonsterType.Dragon:
-                data.baseHealth = 200;
-                data.moveSpeed = 2.5f;
-                data.attackDamage = 25;
-                data.attackRange = 2f;
-                data.attackCooldown = 2f;
-                data.canRandomMove = true;
+                
+            case MonsterType.Goblin:
+                data.monsterType = MonsterType.Goblin;
+                data.maxHealth = 100;
+                data.damage = 20f;
+                data.attackCooldown = 1f;
+                data.attackRange = 1.5f;
+                data.patrolSpeed = 3f;
+                data.chaseSpeed = 4f;
+                data.patrolTime = 3f;
+                data.aggroRange = 8f;
+                data.idleTime = 2f;
+                data.chaseTime = 3f;
+                data.attackDuration = 0.7f;
+                data.deathDuration = 1.5f;
+                data.healthBarColor = Color.red;
                 break;
+                
+            // Add more cases for other monster types...
         }
-
-        // Save the asset
-        AssetDatabase.CreateAsset(data, assetPath);
-        AssetDatabase.SaveAssets();
-        AssetDatabase.Refresh();
-
         return data;
-    }
-
-    [MenuItem("Tools/Create Default Monster Data")]
-    public static void CreateDefaultMonsterData()
-    {
-        foreach (MonsterType type in System.Enum.GetValues(typeof(MonsterType)))
-        {
-            GetOrCreateMonsterData(type);
-        }
     }
 }

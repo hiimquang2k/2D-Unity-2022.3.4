@@ -1,47 +1,46 @@
-// MonsterData.cs
 using UnityEngine;
 
-[CreateAssetMenu(fileName = "NewMonsterData", menuName = "Game/Monster Data")]
+[CreateAssetMenu(fileName = "NewMonsterData", menuName = "Monster/MonsterData")]
 public class MonsterData : ScriptableObject
 {
-    [Header("Basic Monster Info")]
-    public MonsterType type;
-    public Sprite monsterSprite;
-    public RuntimeAnimatorController animatorController;
-    public Color damageColor;
-    public float damageMultiplier;
-
-    [Header("Health & Damage")]
-    public int baseHealth;
-    public float attackDamage;
-    public float attackRange;
+    [Header("Basic Stats")]
+    public MonsterType monsterType;
+    public int maxHealth;
+    public float damage;
     public float attackCooldown;
-    public float attackKnockbackForce;
-    public DamageType attackDamageType;
-    public float attackAnimationDuration;
-    public float attackCooldownVariation;
-
+    public float attackRange;
+    
     [Header("Movement")]
-    public float moveSpeed;
-    public bool canPatrol;
-    public bool canChase;
-    public bool canRandomMove;
     public float patrolSpeed;
-    public float patrolWaitTime;
-    public float chaseRange;
-
-    [Header("Drops & Effects")]
-    public float deathDropChance;
-    public GameObject deathEffect;
-    public GameObject[] possibleDrops;
-    public GameObject hitEffect;
-    public GameObject attackEffect;
-    public GameObject idleEffect;
-    public GameObject[] attackEffects;
-
-    [Header("Sound Effects")]
-    public AudioClip[] attackSounds;
+    public float chaseSpeed;
+    public float patrolTime;
+    
+    [Header("Visuals")]
+    public Sprite monsterSprite;
+    public Color healthBarColor;
+    public float healthBarWidth;
+    public float healthBarHeight;
+    
+    [Header("Audio")]
+    public AudioClip attackSound;
     public AudioClip[] deathSounds;
-    public AudioClip[] hitSounds;
-    public AudioClip[] movementSounds;
+    public AudioClip hitSound;
+    public AudioClip movementSound;
+    
+    [Header("Special Effects")]
+    public GameObject hitEffect;
+    public GameObject deathEffect;
+    public GameObject attackEffect;
+    
+    [Header("Drops")]
+    [Range(0, 1)]
+    public float deathDropChance = 0.5f;
+    public GameObject[] possibleDrops;
+    
+    [Header("AI Settings")]
+    public float aggroRange;
+    public float idleTime;
+    public float chaseTime;
+    public float attackDuration;
+    public float deathDuration;
 }
