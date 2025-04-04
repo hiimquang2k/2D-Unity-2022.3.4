@@ -11,15 +11,15 @@ public class BlackHole : MonoBehaviour
     private bool isPlayerInDamageRadius = false;
 
     private void Update()
-{
-    Collider2D[] nearbyObjects = Physics2D.OverlapCircleAll(transform.position, pullRadius); 
-    foreach (Collider2D obj in nearbyObjects)
     {
-        Rigidbody2D rb = obj.GetComponent<Rigidbody2D>();
-        if (rb != null && obj.CompareTag("Player"))
+        Collider2D[] nearbyObjects = Physics2D.OverlapCircleAll(transform.position, pullRadius); 
+        foreach (Collider2D obj in nearbyObjects)
         {
-            Vector2 directionToBlackHole = (transform.position - obj.transform.position).normalized;
-            rb.AddForce(directionToBlackHole * pullForce, ForceMode2D.Force);
+            Rigidbody2D rb = obj.GetComponent<Rigidbody2D>();
+            if (rb != null && obj.CompareTag("Player"))
+            {
+                Vector2 directionToBlackHole = (transform.position - obj.transform.position).normalized;
+                rb.AddForce(directionToBlackHole * pullForce, ForceMode2D.Force);
 
             // Check for collision and apply damage
             float distance = Vector2.Distance(transform.position, obj.transform.position);
@@ -34,7 +34,7 @@ public class BlackHole : MonoBehaviour
             }
         }
     }
-}
+    }
 
     private void HandlePlayerCollision(Collider2D playerCollider)
     {
@@ -100,6 +100,11 @@ public class BlackHole : MonoBehaviour
         }
     }
 
+    public float GetPullRadius()
+    {
+        return pullRadius;
+    }
+    
     // Visualization for editor
     private void OnDrawGizmosSelected()
     {
