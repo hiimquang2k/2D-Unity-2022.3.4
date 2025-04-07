@@ -10,8 +10,8 @@ public class BlackHole : MonoBehaviour
     [SerializeField] private float damageInterval = 0.5f;
     private bool isPlayerInDamageRadius = false;
 
-    private void Update()
-    {
+
+    private void Update() {
         Collider2D[] nearbyObjects = Physics2D.OverlapCircleAll(transform.position, pullRadius); 
         foreach (Collider2D obj in nearbyObjects)
         {
