@@ -16,7 +16,8 @@ public class FloatingDialogue : MonoBehaviour
     private Transform targetCharacter;
     private Coroutine typingCoroutine;
     private Coroutine displayCoroutine;
-    
+    private bool isTyping = false;
+
     private void Awake()
     {
         dialoguePanel.SetActive(false);
@@ -29,39 +30,27 @@ public class FloatingDialogue : MonoBehaviour
     
     public void ShowDialogue(string message)
     {
-        if (targetCharacter == null)
-        {
-            Debug.LogError("Target character not set for dialogue!");
-            return;
-        }
-        
-        // Stop any ongoing dialogue
+        if (targetCharacter == null || isTyping) return; // Skip if already typing
+
         StopAllCoroutines();
-        
-        // Position dialogue panel above character
         transform.position = targetCharacter.position + dialogueOffset;
-        
-        // Show dialogue
         dialoguePanel.SetActive(true);
-        
-        // Start typing effect
+        isTyping = true; // Set flag
         typingCoroutine = StartCoroutine(TypeDialogue(message));
-        
-        // Start display timer
         displayCoroutine = StartCoroutine(HideDialogueAfterDelay());
+
     }
-    
     private IEnumerator TypeDialogue(string message)
     {
         dialogueText.text = "";
-        
         foreach (char letter in message.ToCharArray())
         {
             dialogueText.text += letter;
             yield return new WaitForSeconds(characterTypingSpeed);
         }
+        isTyping = false; // Reset flag when done
     }
-    
+
     private IEnumerator HideDialogueAfterDelay()
     {
         yield return new WaitForSeconds(displayTime);
