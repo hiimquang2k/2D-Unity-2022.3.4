@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.VFX; // Add this namespace
 using System.Collections.Generic;
 
 public class ElementalZoneManager : MonoBehaviour
@@ -9,10 +10,12 @@ public class ElementalZoneManager : MonoBehaviour
         Electric
     }
 
-    [SerializeField] public List<Transform> electricZones;
-    [SerializeField] public float zoneRadius = 5f;
-    [SerializeField] private GameObject lightningPrefab;
-
+    public List<Transform> electricZones;
+    public float zoneRadius = 5f;
+    [SerializeField] private VisualEffect lightningVFX; // Changed from GameObject to VFX reference
+    [SerializeField] private float vfxDuration = 0.5f;
+    [SerializeField] private float lightningHeight = 4f;
+ 
     // Tagging Configuration
     [SerializeField] private float tagDuration = 5f;
     [SerializeField] private float lightningInterval = 1f;
@@ -25,6 +28,40 @@ public class ElementalZoneManager : MonoBehaviour
         HandleMonsterTagging();
         HandleLightningStrikes();
         CleanupExpiredTags();
+    }
+
+    void HandleLightningStrikes()
+    {
+        if (Time.time - lastLightningStrikeTime >= lightningInterval && lightningVFX != null)
+        {
+            foreach (GameObject taggedMonster in taggedMonsters)
+            {
+                if (taggedMonster != null)
+                {
+                    // Create rotation (X:-90, Y/Z preserved)
+                    Quaternion rotation = Quaternion.Euler(-90f, 0f, 0f);
+                    
+                    // Instantiate with rotation
+                    VisualEffect newVFX = Instantiate(
+                        lightningVFX,
+                        taggedMonster.transform.position + Vector3.up * lightningHeight,
+                        rotation
+                    );
+
+                    newVFX.Play();
+                    Destroy(newVFX.gameObject, vfxDuration);
+
+                    ApplyLightningDamage(taggedMonster);
+                }
+            }
+            lastLightningStrikeTime = Time.time;
+        }
+    }
+
+    void StopVFX()
+    {
+        if (lightningVFX != null)
+            lightningVFX.Stop();
     }
 
     void HandleMonsterTagging()
@@ -57,33 +94,6 @@ public class ElementalZoneManager : MonoBehaviour
             
             // Optional: Visual feedback for tagging
             ApplyTagEffects(monster);
-        }
-    }
-
-    void HandleLightningStrikes()
-    {
-        if (Time.time - lastLightningStrikeTime >= lightningInterval)
-        {
-            foreach (GameObject taggedMonster in taggedMonsters)
-            {
-                if (taggedMonster != null)
-                {
-                    SummonLightningStrike(taggedMonster);
-                }
-            }
-            lastLightningStrikeTime = Time.time;
-        }
-    }
-
-    void SummonLightningStrike(GameObject taggedMonster)
-    {
-        if (lightningPrefab != null)
-        {
-            // Instantiate lightning effect
-            Instantiate(lightningPrefab, taggedMonster.transform.position, Quaternion.identity);
-            
-            // Optional: Apply damage
-            ApplyLightningDamage(taggedMonster);
         }
     }
 

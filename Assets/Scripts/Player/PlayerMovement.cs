@@ -23,7 +23,7 @@ public class PlayerMovement : MonoBehaviour
     private const float GROUND_CHECK_DISTANCE = 0.1f;
 
     // State tracking
-    private float lastOnGroundTime;
+    [SerializeField] private float lastOnGroundTime;
     private float lastPressedJumpTime;
     private float horizontal;
     private float vertical;
@@ -46,6 +46,15 @@ public class PlayerMovement : MonoBehaviour
         if (!isDashing)
         {
             Run();
+        }
+
+        if (Input.GetKey(KeyCode.A))
+        {
+            body.AddForce(new Vector2(-5f, 0), ForceMode2D.Force);
+        }
+        else if (Input.GetKey(KeyCode.D))
+        {
+            body.AddForce(new Vector2(5f, 0), ForceMode2D.Force);
         }
     }
 
@@ -220,4 +229,5 @@ public class PlayerMovement : MonoBehaviour
     }
 
     public void SetGravityScale(float scale) => body.gravityScale = scale;
+
 }
