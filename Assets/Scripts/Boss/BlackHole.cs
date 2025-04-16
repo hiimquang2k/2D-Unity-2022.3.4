@@ -1,116 +1,109 @@
 using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 
 public class BlackHole : MonoBehaviour
 {
+    [Header("Pull Settings")]
     [SerializeField] private float pullForce = 10f;
     [SerializeField] private float pullRadius = 5f;
+    
+    [Header("Damage Settings")]
     [SerializeField] private float damageRadius = 1f;
-    [SerializeField] private int damagePerSecond = 10;
-    [SerializeField] private float damageInterval = 0.5f;
-    private bool isPlayerInDamageRadius = false;
+    [SerializeField] private int damagePerTick = 10;
+    [SerializeField] private float tickInterval = 0.5f;
+    
+    private HashSet<DamageSystem> affectedPlayers = new HashSet<DamageSystem>();
+    private Coroutine damageCoroutine;
 
-
-    private void Update() {
-        Collider2D[] nearbyObjects = Physics2D.OverlapCircleAll(transform.position, pullRadius); 
-        foreach (Collider2D obj in nearbyObjects)
-        {
-            Rigidbody2D rb = obj.GetComponent<Rigidbody2D>();
-            if (rb != null && obj.CompareTag("Player"))
-            {
-                Vector2 directionToBlackHole = (transform.position - obj.transform.position).normalized;
-                rb.AddForce(directionToBlackHole * pullForce, ForceMode2D.Force);
-
-            // Check for collision and apply damage
-            float distance = Vector2.Distance(transform.position, obj.transform.position);
-            if (distance < damageRadius)
-            {
-                if (!isPlayerInDamageRadius)
-                {
-                    // Player just entered damage radius
-                    isPlayerInDamageRadius = true;
-                    HandlePlayerCollision(obj);
-                }
-            }
-        }
-    }
-    }
-
-    private void HandlePlayerCollision(Collider2D playerCollider)
+    private void Update()
     {
-        DamageSystem damageSystem = playerCollider.GetComponentInParent<DamageSystem>();
-        if (damageSystem != null)
-        {
-            // Disable knockback while in black hole
-            damageSystem.SetKnockbackable(false);
-        
-            // Start damage coroutine
-            StartCoroutine(ApplyDoTDamage(damageSystem));
-        }
-    }
-
-    private IEnumerator ApplyDoTDamage(DamageSystem damageSystem)
-    {
-        while (isPlayerInDamageRadius)
-        {
-            // Use DamageType.DoT for black hole damage
-            damageSystem.TakeDamage(damagePerSecond, DamageType.DoT);
-            yield return new WaitForSeconds(damageInterval);
-        }
-    }
-
-    private void ResetPlayerInvulnerability(Collider2D playerCollider)
-    {
-        DamageSystem damageSystem = playerCollider.GetComponentInParent<DamageSystem>();
-        if (damageSystem != null)
-        {
-            // Reset knockback state
-            damageSystem.SetKnockbackable(true);
-        
-            // Reset damage state
-            damageSystem.SetDamageable(true);
-            Debug.Log("Reset player invulnerability successfully");
-        }
-
-        if (damageSystem == null)
-        {
-            Debug.LogError("Invalid damage system");
-        }
-    }
-    private void OnDestroy()
-    {
-        // Store the player collider before destruction
-        Collider2D playerCollider = null;
-        
-        // Check for nearby player
         Collider2D[] nearbyObjects = Physics2D.OverlapCircleAll(transform.position, pullRadius);
         foreach (Collider2D obj in nearbyObjects)
         {
-            if (obj.CompareTag("Player"))
+            if (!obj.CompareTag("Player")) continue;
+            
+            // Handle physics pull
+            Rigidbody2D rb = obj.GetComponent<Rigidbody2D>();
+            if (rb != null)
             {
-                playerCollider = obj;
-                break;
+                Vector2 direction = (transform.position - obj.transform.position).normalized;
+                rb.AddForce(direction * pullForce, ForceMode2D.Force);
+            }
+
+            // Handle damage system
+            DamageSystem damageSystem = obj.GetComponent<DamageSystem>();
+            if (damageSystem != null)
+            {
+                float distance = Vector2.Distance(transform.position, obj.transform.position);
+                bool inDamageZone = distance < damageRadius;
+
+                if (inDamageZone && !affectedPlayers.Contains(damageSystem))
+                {
+                    // Player entered damage zone
+                    affectedPlayers.Add(damageSystem);
+                    damageSystem.SetKnockbackable(false);
+                }
+                else if (!inDamageZone && affectedPlayers.Contains(damageSystem))
+                {
+                    // Player exited damage zone
+                    affectedPlayers.Remove(damageSystem);
+                    damageSystem.SetKnockbackable(true);
+                }
             }
         }
 
-        // Reset player invulnerability if player was in damage radius
-        if (isPlayerInDamageRadius && playerCollider != null)
+        // Clean up any null references
+        affectedPlayers.RemoveWhere(x => x == null);
+    }
+
+    private void OnEnable()
+    {
+        damageCoroutine = StartCoroutine(ApplyDoTDamage());
+    }
+
+    private void OnDisable()
+    {
+        if (damageCoroutine != null)
         {
-            ResetPlayerInvulnerability(playerCollider);
+            StopCoroutine(damageCoroutine);
+        }
+
+        // Reset all affected players
+        foreach (var player in affectedPlayers)
+        {
+            if (player != null)
+            {
+                player.SetKnockbackable(true);
+            }
+        }
+        affectedPlayers.Clear();
+    }
+
+    private IEnumerator ApplyDoTDamage()
+    {
+        WaitForSeconds wait = new WaitForSeconds(tickInterval);
+        
+        while (true)
+        {
+            foreach (var player in affectedPlayers)
+            {
+                if (player != null)
+                {
+                    player.ApplyDamage(damagePerTick, DamageType.DoT);
+                }
+            }
+            yield return wait;
         }
     }
 
-    public float GetPullRadius()
-    {
-        return pullRadius;
-    }
-    
-    // Visualization for editor
+    public float GetPullRadius() => pullRadius;
+
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(transform.position, pullRadius);
         Gizmos.color = Color.yellow;
-        Gizmos.DrawWireSphere(transform.position, damageRadius); // Show damage radius
+        Gizmos.DrawWireSphere(transform.position, damageRadius);
     }
 }

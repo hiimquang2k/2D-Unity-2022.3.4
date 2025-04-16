@@ -173,6 +173,13 @@ public class HealthSystem : MonoBehaviour
         isInvulnerable = false;
     }
 
+    public void Initialize(HealthData data)
+    {
+        healthData = data;
+        CurrentHealth = healthData.maxHealth;
+        UpdateUI();
+    }
+
     // Public getters/setters
     public int GetMaxHealth() => healthData.maxHealth;
     public int CurrentHealth

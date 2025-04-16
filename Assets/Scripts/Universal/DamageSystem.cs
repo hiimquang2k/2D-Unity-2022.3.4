@@ -4,11 +4,12 @@ public enum DamageType
 {
     Physical,
     Magical,
-    Fire,
-    Ice,
-    Lightning,
-    DoT,
-    Normal
+    Fire,      // Can apply burning DoT
+    Ice,       // Can apply slow/freeze
+    Lightning, // Can apply chain/stun
+    DoT,    // Explicit DoT type
+    Pure,       // Bypasses all reductions
+    Environmental,
 }
 
 public class DamageSystem : MonoBehaviour
@@ -63,34 +64,39 @@ public class DamageSystem : MonoBehaviour
         Debug.Log("Knockback reset completed");
     }
 
-    public void TakeDamage(int amount, DamageType type = DamageType.Normal, Vector2 damageSource = default)
+    public void ApplyDoT(DoTEffect dotEffect)
     {
-        // Check if we can take damage
-        if (!canTakeDamage)
+        DoTSystem dotSystem = GetComponent<DoTSystem>();
+        if (dotSystem == null) dotSystem = gameObject.AddComponent<DoTSystem>();
+        dotSystem.ApplyDoT(dotEffect);
+    }
+
+    // Modified ApplyDamage to handle DoT initialization
+    public void ApplyDamage(int rawDamage, DamageType type, Vector2 damageSource = default)
+    {
+        if (!canTakeDamage) return;
+
+        // Handle instant damage
+        if (type != DamageType.DoT && type != DamageType.Fire) // Non-DoT types
         {
-            return;
+            BlackHoleBoss boss = GetComponent<BlackHoleBoss>();
+            if (boss != null)
+            {
+                boss.ProcessIncomingDamage(rawDamage, type);
+            }
+            else if (healthSystem != null)
+            {
+                healthSystem.TakeDamage(rawDamage, type);
+            }
         }
 
-        // Prevent self-damage by checking if the damage source is from the same object
-        if (damageSource != default && 
-            Vector2.Distance(damageSource, transform.position) < 0.1f) // Small threshold to account for floating point precision
+        // Handle knockback
+        if (canBeKnockedBack && type != DamageType.DoT) // Don't knockback from DoT
         {
-            return;
-        }
-
-        // Store the last damage source
-        lastDamageSource = damageSource;
-
-        // Apply damage
-        healthSystem.TakeDamage(amount, type);
-
-        // Handle knockback if allowed
-        if (canBeKnockedBack)
-        {
+            lastDamageSource = damageSource;
             HandleKnockback();
         }
     }
-
     private void HandleKnockback()
     {
         if (rb == null || isKnockedBack || !canBeKnockedBack)

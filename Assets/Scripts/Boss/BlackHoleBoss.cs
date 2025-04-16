@@ -1,152 +1,117 @@
 using UnityEngine;
+using UnityEngine.Tilemaps;
 using System.Collections;
 
 public class BlackHoleBoss : MonoBehaviour
 {
-    [Header("Movement Settings")]
-    [SerializeField] private float moveSpeed = 5f;
-    [SerializeField] private float idealDistance = 10f; // Ideal distance from player
-    [SerializeField] private float distanceThreshold = 2f; // Tolerance for ideal distance
-    [SerializeField] private DirectionManager directionManager;
-
-    [Header("Black Hole Settings")]
-    [SerializeField] private GameObject blackHolePrefab;
-    [SerializeField] private float blackHoleSpawnCooldown = 10f;
-    [SerializeField] private float blackHoleLifetime = 5f;
-
     [Header("Health Settings")]
-    [SerializeField] private HealthData healthData;
-    public float damageReceiveRatio = 0.1f;
-    private HealthSystem healthSystem;
+    [SerializeField] private HealthSystem healthSystem;
 
-    private Transform player;
-    private Rigidbody2D rb;
-    private float lastBlackHoleTime;
+    [Header("Meteor Settings")]
+    [SerializeField] private GameObject meteorPrefab;
+    [SerializeField] private float meteorSpawnHeight = 5f;
+    [SerializeField] private float baseMeteorFallSpeed = 5f;
+    [SerializeField] private int baseMeteorDamage = 10;
+    [SerializeField] private float baseMeteorImpactRadius = 1f;
+
+    [Header("Destruction Settings")]
+    [SerializeField] private Tilemap destructibleTilemap;
+    [SerializeField] private NonOverlappingParallax parallaxSystem;
+    [SerializeField] private float[] phaseThresholds = { 0.66f, 0.33f, 0f };
+    [SerializeField] private float[] destructionWidths = { 0.33f, 0.66f, 1f };
+    
+    private int currentPhase = 0;
+    private Camera mainCamera;
 
     private void Start()
     {
-        player = GameObject.FindGameObjectWithTag("Player").transform;
-        rb = GetComponent<Rigidbody2D>();
-        if (directionManager == null)
+        mainCamera = Camera.main;
+        healthSystem.OnHealthChanged += HandleHealthChanged;
+    }
+
+    private void HandleHealthChanged(int current, int max)
+    {
+        CheckPhaseTransition((float)current / max);
+    }
+
+    private void CheckPhaseTransition(float healthPercent)
+    {
+        for (int i = currentPhase; i < phaseThresholds.Length; i++)
         {
-            directionManager = GetComponent<DirectionManager>();
-            if (directionManager == null)
+            if (healthPercent <= phaseThresholds[i])
             {
-                directionManager = gameObject.AddComponent<DirectionManager>();
+                currentPhase = i + 1;
+                StartCoroutine(TriggerDestructionWave());
+                break;
             }
         }
-        // Initialize health system
-        healthSystem = GetComponent<HealthSystem>();
-        if (healthSystem == null)
-        {
-            healthSystem = gameObject.AddComponent<HealthSystem>();
-        }
-
-        // Subscribe to death event
-        healthSystem.OnDeath += HandleDeath;
     }
 
-    private void OnDestroy()
+    private IEnumerator TriggerDestructionWave()
     {
-        if (healthSystem != null)
-        {
-            healthSystem.OnDeath -= HandleDeath;
-        }
-    }
-
-    private void HandleDeath()
-    {
-        // Add boss death logic here
-        Destroy(gameObject);
-    }
-
-    private void TakeDamage(int damage)
-    {
-        damage = (int)(damage * damageReceiveRatio);
-        if (healthSystem != null)
-        {
-            healthSystem.TakeDamage(damage, DamageType.Normal);
-        }
-    }
-
-    private void Update()
-    {
-        if (player == null) return;
-
-        HandlePositioning();
-        HandleBlackHoleSpawn();
-    }
-
-    private void HandlePositioning()
-    {
-        // Calculate distance to player
-        float distanceToPlayer = Vector2.Distance(transform.position, player.position);
-
-        // Determine movement direction
-        Vector2 directionToPlayer = (player.position - transform.position).normalized;
-        directionManager.UpdateDirection(directionToPlayer.x, directionToPlayer.y);
+        int meteorsToSpawn = 5 + (currentPhase * 3);
+        float delayBetween = 0.2f;
         
-        if (distanceToPlayer > idealDistance + distanceThreshold)
+        for (int i = 0; i < meteorsToSpawn; i++)
         {
-            // Move closer to player
-            rb.velocity = directionToPlayer * moveSpeed;
-        }
-        else if (distanceToPlayer < idealDistance - distanceThreshold)
-        {
-            // Move away from player
-            rb.velocity = -directionToPlayer * moveSpeed;
-        }
-        else
-        {
-            // Maintain position
-            rb.velocity = Vector2.zero;
+            SpawnDestructionMeteor();
+            yield return new WaitForSeconds(delayBetween);
         }
     }
 
-    private void HandleBlackHoleSpawn()
+    private void SpawnDestructionMeteor()
     {
-        if (Time.time - lastBlackHoleTime >= blackHoleSpawnCooldown)
+        if (meteorPrefab == null) return;
+
+        Vector2 viewportMin = mainCamera.ViewportToWorldPoint(Vector2.zero);
+        Vector2 viewportMax = mainCamera.ViewportToWorldPoint(Vector2.one);
+        
+        Vector2 spawnPos = new Vector2(
+            Random.Range(viewportMin.x, viewportMax.x),
+            viewportMax.y + meteorSpawnHeight
+        );
+
+        GameObject meteor = Instantiate(meteorPrefab, spawnPos, Quaternion.identity);
+        Meteor meteorScript = meteor.GetComponent<Meteor>();
+        
+        if (meteorScript != null)
         {
-            SpawnBlackHole();
-            lastBlackHoleTime = Time.time;
+            float phaseMultiplier = currentPhase + 1;
+            float width = (viewportMax.x - viewportMin.x) * destructionWidths[currentPhase];
+            
+            meteorScript.Initialize(
+    fallSpeed: baseMeteorFallSpeed * phaseMultiplier,
+    damage: Mathf.RoundToInt(baseMeteorDamage * phaseMultiplier),
+    radius: baseMeteorImpactRadius * phaseMultiplier, // Changed parameter name
+    width: width,
+    chance: 0.7f, // Changed parameter name
+    tilemap: destructibleTilemap, // Changed parameter name
+    parallax: parallaxSystem // Changed parameter name
+);
+
         }
     }
 
-    private void SpawnBlackHole()
+    public void ProcessIncomingDamage(int rawDamage, DamageType type)
     {
-        if (blackHolePrefab != null && player != null)
-        {
-            // Spawn black hole at player position
-            Vector2 spawnPosition = (Vector2)player.transform.position + 
-                Random.insideUnitCircle * 1f; 
-            
-            GameObject blackHole = Instantiate(blackHolePrefab, spawnPosition, Quaternion.identity);
-            
-            // Add destroy coroutine
-            StartCoroutine(DestroyBlackHoleAfterDelay(blackHole));
-        }
+        int finalDamage = CalculateDamage(rawDamage, type);
+        healthSystem.TakeDamage(finalDamage, type);
     }
 
-    private IEnumerator DestroyBlackHoleAfterDelay(GameObject blackHole)
+    private int CalculateDamage(int rawDamage, DamageType type)
     {
-        yield return new WaitForSeconds(blackHoleLifetime);
-        Destroy(blackHole);
-    }
-
-    // Visualization for editor
-    private void OnDrawGizmosSelected()
-    {
-        // Draw ideal distance circle
-        if (player != null)
+        float multiplier = 1f;
+        
+        switch(type)
         {
-            Gizmos.color = Color.yellow;
-            Gizmos.DrawWireSphere(player.position, idealDistance);
-            
-            Gizmos.color = Color.green;
-            Gizmos.DrawWireSphere(player.position, idealDistance - distanceThreshold);
-            
-            Gizmos.color = Color.red;
-            Gizmos.DrawWireSphere(player.position, idealDistance + distanceThreshold);
+            case DamageType.Fire:
+                multiplier = 0.8f;
+                break;
+            case DamageType.Ice:
+                multiplier = 1.2f;
+                break;
         }
+        
+        return Mathf.RoundToInt(rawDamage * multiplier);
     }
 }
