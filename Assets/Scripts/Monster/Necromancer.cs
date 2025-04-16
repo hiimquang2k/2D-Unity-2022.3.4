@@ -14,7 +14,7 @@ public class Necromancer : Monster
         var chaseState = new ChaseState(this);
         stateMachine.AddState(MonsterStateType.Chase, new ChaseState(this));
         stateMachine.AddState(MonsterStateType.Summon, new SummonState(this));
-        stateMachine.SwitchState(EnumeratorStateType.Chase);
+        stateMachine.SwitchState(MonsterStateType.Chase);
     }
 
     protected override void Update()

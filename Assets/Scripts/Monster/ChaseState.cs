@@ -1,3 +1,4 @@
+using UnityEngine;
 public class ChaseState : IMonsterState
 {
     // Public property with private backing field
@@ -16,7 +17,7 @@ public class ChaseState : IMonsterState
     
     public void Update()
     {
-        if (Time.time - _lastUpdateTime > _updateInterval)
+        if (Time.time - _lastUpdateTime > UpdateInterval)
         {
             Vector2 direction = (_monster.Target.position - _monster.transform.position).normalized;
             _monster.Move(direction * _monster.Data.chaseSpeed);

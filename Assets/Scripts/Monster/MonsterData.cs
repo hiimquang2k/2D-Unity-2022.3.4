@@ -22,8 +22,9 @@ public class MonsterData : ScriptableObject
     [Range(0.5f, 10f)] public float attackRange = 1.5f;
     [Range(0.1f, 5f)] public float attackCooldown = 1f;
     [Range(1, 100)] public int attackDamage = 10;
-    
+
     [Header("AI Configuration")]
+    [Range(0.1f, 10f)] public float chaseSpeed = 5f;
     [Range(1f, 20f)] public float aggroRange = 5f;
     [Range(0.1f, 5f)] public float decisionInterval = 0.3f;
     [Range(1f, 10f)] public float patrolRadius = 5f;

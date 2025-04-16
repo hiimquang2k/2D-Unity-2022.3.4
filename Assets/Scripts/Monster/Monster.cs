@@ -3,17 +3,17 @@ using UnityEngine;
 public abstract class Monster : MonoBehaviour
 {
     [Header("References")]
-    public MonsterData data;
-    public Transform target;
-    public Animator animator;
-    public Rigidbody2D rb;
+    public MonsterData Data;
+    public Transform Target;
+    public Animator Animator;
+    public Rigidbody2D Rb;
 
-    protected StateMachine stateMachine = new();
+    public StateMachine stateMachine = new();
     
     public void Move(Vector2 velocity)
     {
-        rb.velocity = velocity;
-        animator.SetFloat("Speed", velocity.magnitude);
+        Rb.velocity = velocity;
+        Animator.SetFloat("Speed", velocity.magnitude);
     }
 
     protected virtual void Update() => stateMachine.Update();
