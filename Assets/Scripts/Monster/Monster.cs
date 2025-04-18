@@ -7,6 +7,8 @@ public abstract class Monster : MonoBehaviour
     public Transform Target;
     public Animator Animator;
     public Rigidbody2D Rb;
+    [Header("Direction")]
+    public DirectionManager directionManager;
 
     public StateMachine stateMachine = new();
     
@@ -16,5 +18,13 @@ public abstract class Monster : MonoBehaviour
         Animator.SetFloat("Speed", velocity.magnitude);
     }
 
-    protected virtual void Update() => stateMachine.Update();
+    protected virtual void Update()
+    {
+        if (Target != null)
+        {
+            Vector2 direction = (Target.position - transform.position).normalized;
+            directionManager.UpdateDirection(direction.x, direction.y);
+        }
+        stateMachine.Update();
+    }
 }

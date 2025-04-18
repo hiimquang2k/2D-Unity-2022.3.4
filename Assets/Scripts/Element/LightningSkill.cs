@@ -13,6 +13,9 @@ public class LightningSkill : MonoBehaviour
 
         if (hit.collider != null && hit.collider.CompareTag("Enemy"))
         {
+            ElementStatus status = hit.collider.GetComponent<ElementStatus>();
+            if (status != null) status.ApplyElement(Element.Lightning, 3f);
+            
             // Teleport to enemy
             transform.position = hit.point;
 

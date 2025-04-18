@@ -1,4 +1,3 @@
-// ElementManager.cs
 using UnityEngine;
 
 public enum Element { Lightning, Fire, Water, Earth }
@@ -12,6 +11,7 @@ public class ElementManager : MonoBehaviour
     public FireSkill fireSkill;
     public WaterSkill waterSkill;
     public EarthSkill earthSkill;
+    public TileMorphController tileMorpher; // Add this reference
 
     [Header("Current State")]
     public Element activeElement;
@@ -27,37 +27,49 @@ public class ElementManager : MonoBehaviour
             UpdateVisuals();
         }
 
-        // Activate skill
+        // Activate skill (with hold support for Water)
         if (Input.GetButtonDown("Skill"))
         {
-            switch (activeElement)
-            {
-                case Element.Lightning: 
-                    lightningSkill.Activate();
-                    break;
-                case Element.Fire:
-                    fireSkill.Activate();
-                    break;
-                case Element.Water:
-                    waterSkill.Activate();
-                    break;
-                case Element.Earth:
-                    earthSkill.Activate();
-                    break;
-            }
+            ActivateSkill(false); // Tap
+        }
+        if (Input.GetButton("Skill") && activeElement == Element.Water)
+        {
+            ActivateSkill(true); // Hold
+        }
+    }
+
+    void ActivateSkill(bool isHolding)
+    {
+        switch (activeElement)
+        {
+            case Element.Lightning:
+                lightningSkill.Activate();
+                break;
+            case Element.Fire:
+                fireSkill.Activate();
+                tileMorpher.MorphTiles(Element.Fire);
+                break;
+            case Element.Water:
+                waterSkill.Activate(isHolding); // Pass hold state
+                tileMorpher.MorphTiles(Element.Water);
+                break;
+            case Element.Earth:
+                earthSkill.Activate();
+                tileMorpher.MorphTiles(Element.Earth);
+                break;
         }
     }
 
     void UpdateVisuals()
     {
-        // Glow 2D color change
+        // Glow color change
         var main = swordGlow.main;
         main.startColor = activeElement switch
         {
-            Element.Lightning => Color.blue,
-            Element.Fire => Color.red,
-            Element.Water => Color.cyan,
-            Element.Earth => Color.green,
+            Element.Lightning => new Color(0.2f, 0.6f, 1f), // Electric blue
+            Element.Fire => new Color(1f, 0.3f, 0f), // Orange-red
+            Element.Water => new Color(0f, 0.8f, 1f), // Light cyan
+            Element.Earth => new Color(0.5f, 0.3f, 0f), // Brown
             _ => Color.white
         };
 

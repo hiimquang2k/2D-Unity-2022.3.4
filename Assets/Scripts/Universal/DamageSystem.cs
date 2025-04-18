@@ -4,19 +4,21 @@ public enum DamageType
 {
     Physical,
     Magical,
-    Fire,      // Can apply burning DoT
-    Ice,       // Can apply slow/freeze
-    Lightning, // Can apply chain/stun
-    DoT,    // Explicit DoT type
-    Pure,       // Bypasses all reductions
+    Fire,       // Burning DoT
+    Ice,        // Slow/Freeze
+    Lightning,  // Stun/Chain
+    Water,      // Wet status (for synergies)
+    Earth,      // Petrify/Shatter
+    Pure,
     Environmental,
+    DoT
 }
 
 public class DamageSystem : MonoBehaviour
 {
     public HealthSystem healthSystem; // Reference to the HealthSystem
     private Animator animator; // Animator for triggering animations
-
+    private ElementStatus elementStatus;
     [Header("Invulnerability Settings")]
     [SerializeField] private bool canTakeDamage = true;
     [SerializeField] private bool canBeKnockedBack = true;
@@ -37,6 +39,9 @@ public class DamageSystem : MonoBehaviour
         rb = GetComponent<Rigidbody2D>();
         playerMovement = GetComponent<PlayerMovement>();
         healthSystem = GetComponent<HealthSystem>();
+
+        elementStatus = GetComponent<ElementStatus>();
+    if (elementStatus == null) elementStatus = gameObject.AddComponent<ElementStatus>();
     }
 
     private void Update()
@@ -72,29 +77,37 @@ public class DamageSystem : MonoBehaviour
     }
 
     // Modified ApplyDamage to handle DoT initialization
-    public void ApplyDamage(int rawDamage, DamageType type, Vector2 damageSource = default)
+    public void ApplyDamage(int damage, DamageType type, Vector2 sourcePosition = default)
+{
+    if (!canTakeDamage) return;
+
+    // Convert DamageType to Element for synergies
+    Element? element = type switch
     {
-        if (!canTakeDamage) return;
+        DamageType.Fire => Element.Fire,
+        DamageType.Lightning => Element.Lightning,
+        DamageType.Water => Element.Water,
+        DamageType.Earth => Element.Earth,
+        _ => null
+    };
 
-        // Handle instant damage
-        if (type != DamageType.DoT && type != DamageType.Fire) // Non-DoT types
-        {
-            BlackHoleBoss boss = GetComponent<BlackHoleBoss>();
-            if (boss != null)
-            {
-                boss.ProcessIncomingDamage(rawDamage, type);
-            }
-            else if (healthSystem != null)
-            {
-                healthSystem.TakeDamage(rawDamage, type);
-            }
-        }
+    if (element.HasValue)
+    {
+        ApplyElementalEffect(element.Value, 3f); // 3-second duration
+    }
 
-        // Handle knockback
-        if (canBeKnockedBack && type != DamageType.DoT) // Don't knockback from DoT
+    // Existing damage logic
+    if (type != DamageType.DoT)
+    {
+        healthSystem?.TakeDamage(damage, type);
+        if (canBeKnockedBack) HandleKnockback();
+    }
+}
+    public void ApplyElementalEffect(Element element, float duration)
+    {
+        if (elementStatus != null)
         {
-            lastDamageSource = damageSource;
-            HandleKnockback();
+            elementStatus.ApplyElement(element, duration);
         }
     }
     private void HandleKnockback()
