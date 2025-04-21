@@ -26,7 +26,11 @@ public class DamageSystem : MonoBehaviour
     [Header("Knockback Settings")]
     [SerializeField] private float knockbackForce = 10f; // Force of the knockback
     [SerializeField] private float knockbackDuration = 0.5f; // Duration of the knockback effect
-    
+
+    [Header("Stun Settings")]
+    [SerializeField] private float playerStunDuration = 1.5f;
+    private bool isPlayerStunned;
+
     private Rigidbody2D rb; // Reference to the Rigidbody2D component
     private PlayerMovement playerMovement; // Reference to the PlayerMovement component
     private bool isKnockedBack = false; // Flag to track knockback state
@@ -55,6 +59,12 @@ public class DamageSystem : MonoBehaviour
                 ResetKnockback();
             }
         }
+        if (isPlayerStunned)
+        {
+            playerStunDuration -= Time.deltaTime;
+            if (playerStunDuration <= 0)
+                ResetPlayerStun();
+        }
     }
 
     private void ResetKnockback()
@@ -67,6 +77,27 @@ public class DamageSystem : MonoBehaviour
             playerMovement.enabled = true;
 
         Debug.Log("Knockback reset completed");
+    }
+    private void ResetPlayerStun()
+    {
+        isPlayerStunned = false;
+        playerMovement?.LockMovement(false);
+        animator?.SetBool("IsStunned", false);
+    }
+    public void ApplyStun(float duration)
+    {
+        if (isPlayerStunned) return;
+
+        isPlayerStunned = true;
+        playerStunDuration = duration;
+
+        // Block input (modify your PlayerMovement.cs)
+        if (playerMovement != null)
+            playerMovement.LockMovement(true);
+
+        // Visual feedback
+        animator?.SetBool("IsStunned", true);
+        // Add camera shake, VFX, etc.
     }
 
     public void ApplyDoT(DoTEffect dotEffect)

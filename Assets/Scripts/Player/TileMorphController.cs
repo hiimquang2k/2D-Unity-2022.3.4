@@ -28,7 +28,13 @@ public class TileMorphController : MonoBehaviour {
             }
         }
     }
-
+    int GetElementRadius(Element element) => element switch
+    {
+        Element.Fire => 2,
+        Element.Water => 3,
+        Element.Earth => 2,
+        _ => 1
+    };
     MorphableRuleTile GetNewTile(MorphableRuleTile oldTile, Element element) {
         switch (element) {
             case Element.Fire when oldTile.isFlammable:

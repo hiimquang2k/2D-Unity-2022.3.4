@@ -30,7 +30,7 @@ public class TileMorpher : MonoBehaviour {
             foreach (Vector3Int cell in area.allPositionsWithin) {
                 if (!tilemap.HasTile(cell)) continue;
                 
-                MorphableTile tile = tilemap.GetTile<MorphableTile>(cell);
+                MorphableRuleTile tile = tilemap.GetTile<MorphableRuleTile>(cell);
                 if (tile == null) continue;
 
                 if (IsTileAffected(tile) && HasLineOfSight(cell)) {
@@ -44,7 +44,7 @@ public class TileMorpher : MonoBehaviour {
     bool IsTileAffected(MorphableRuleTile tile) {
         switch (currentElement.element) {
             case Element.Fire: return tile.isFlammable;
-            case Element.Earth: return tile.isMorphableByEarth;
+            case Element.Earth: return tile.isCrumbling;
             default: return false;
         }
     }

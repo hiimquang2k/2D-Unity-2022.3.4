@@ -59,7 +59,7 @@ public class EarthSkill : MonoBehaviour
         Collider2D[] enemies = Physics2D.OverlapCircleAll(transform.position, stompRadius);
         foreach (Collider2D enemy in enemies)
         {
-            enemy.GetComponent<Enemy>().Stun(2f);
+            enemy.GetComponent<DamageSystem>().ApplyStun(2f);
         }
     }
 }

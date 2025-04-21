@@ -97,7 +97,7 @@ public class ElementStatus : MonoBehaviour
     void CreateElectrifiedWater()
     {
         Instantiate(electrifiedWaterPrefab, transform.position, Quaternion.identity);
-        GetComponent<Enemy>()?.TakeDamage(15); // Example enemy effect
+        GetComponent<DamageSystem>()?.ApplyDamage(15, DamageType.Lightning); // Example enemy effect
     }
 
     void CreateSteamCloud()

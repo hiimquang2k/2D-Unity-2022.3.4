@@ -11,6 +11,11 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] private LayerMask wallLayer;
     [SerializeField] private LayerMask obstacleLayer;
 
+    [Header("Movement Lock")]
+    [SerializeField] private bool _isMovementLocked;
+
+    private Vector2 _preLockVelocity;
+    private float _preLockGravity;
     private Rigidbody2D body;
     private Animator anim;
     private BoxCollider2D boxCollider;
@@ -43,6 +48,13 @@ public class PlayerMovement : MonoBehaviour
 
     private void FixedUpdate()
     {
+        if (_isMovementLocked)
+        {
+            // Optional gradual stop instead of instant lock
+            // body.velocity = Vector2.Lerp(body.velocity, new Vector2(0, body.velocity.y), 10f * Time.fixedDeltaTime);
+            return;
+        }
+
         if (!isDashing)
         {
             Run();
@@ -94,6 +106,7 @@ public class PlayerMovement : MonoBehaviour
 
     private void UpdateMovement()
     {
+        if (_isMovementLocked) return;
         // Jump input handling
         if (Input.GetKeyDown(KeyCode.Space))
             lastPressedJumpTime = Data.jumpInputBufferTime;
@@ -197,7 +210,43 @@ public class PlayerMovement : MonoBehaviour
 
         isDashing = false;
     }
+    public void LockMovement(bool shouldLock, bool preserveMomentum = false)
+    {
+        _isMovementLocked = shouldLock;
 
+        if (shouldLock)
+        {
+            // Store current state
+            _preLockVelocity = body.velocity;
+            _preLockGravity = body.gravityScale;
+
+            // Apply lock effects
+            if (!preserveMomentum)
+            {
+                body.velocity = new Vector2(0, body.velocity.y); // Preserve vertical velocity
+            }
+
+            body.gravityScale = preserveMomentum ? _preLockGravity : 0; // Optional: freeze gravity
+            anim.SetBool("Run", false);
+
+            // Cancel dash if active
+            if (isDashing)
+            {
+                StopCoroutine(Dash());
+                isDashing = false;
+                trailRenderer.emitting = false;
+            }
+        }
+        else
+        {
+            // Restore movement
+            if (preserveMomentum)
+            {
+                body.velocity = _preLockVelocity;
+            }
+            body.gravityScale = _preLockGravity;
+        }
+    }
     private void InitializeComponents()
     {
         body = GetComponent<Rigidbody2D>();
@@ -227,7 +276,15 @@ public class PlayerMovement : MonoBehaviour
         trailRenderer.endColor = new Color(1f, 1f, 1f, 0f);
         trailRenderer.material = new Material(Shader.Find("Sprites/Default"));
     }
-
+    private void OnDisable()
+    {
+        if (_isMovementLocked)
+        {
+            // Clean up if disabled while locked
+            body.velocity = Vector2.zero;
+            body.gravityScale = _preLockGravity;
+        }
+    }
     public void SetGravityScale(float scale) => body.gravityScale = scale;
-
+    public bool IsMovementLocked => _isMovementLocked;
 }
