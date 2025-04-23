@@ -13,7 +13,12 @@ public class ChaseState : IMonsterState
         UpdateInterval = updateInterval; // Set through constructor
     }
 
-    public void Enter() => _monster.Animator.SetBool("IsChasing", true);
+    public void Enter()
+    {
+        _monster.Animator.SetBool("IsChasing", true);
+        GameObject Player = GameObject.FindGameObjectWithTag("Player");
+        _monster.Target = Player.transform;
+    }
     
     public void Update()
     {
