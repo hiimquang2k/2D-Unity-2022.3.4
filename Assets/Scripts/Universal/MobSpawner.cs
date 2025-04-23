@@ -1,196 +1,215 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 public class MobSpawner : MonoBehaviour
 {
     [Header("Spawning Settings")]
-    [SerializeField] private float spawnDistance = 20f;    // How far ahead to spawn mobs
-    [SerializeField] private float despawnDistance = 30f;  // How far away to despawn mobs
-    [SerializeField] private float spawnRadius = 10f;      // Radius around spawn point to randomly place mobs
-    [SerializeField] private int maxActiveMobs = 15;       // Maximum number of active mobs at once
-    [SerializeField] private float spawnCooldown = 3f;     // Time between spawn attempts
-    
+    [SerializeField] private float spawnDistance = 15f;
+    [SerializeField] private float despawnDistance = 25f;
+    [SerializeField] private float spawnRadius = 8f;
+    [SerializeField] private int maxActiveMobs = 12;
+    [SerializeField] private float spawnCooldown = 2.5f;
+    [SerializeField] private int maxSpawnAttempts = 5;
+
+    [Header("Layer Settings")]
+    [SerializeField] private LayerMask groundLayer;
+
     [Header("Mob Prefabs")]
-    [SerializeField] private List<GameObject> mobPrefabs;  // List of available mob prefabs
-    [SerializeField] private Transform mobContainer;       // Parent object for spawned mobs
-    
+    [SerializeField] private List<GameObject> mobPrefabs;
+    [SerializeField] private Transform mobContainer;
+
     [Header("References")]
-    [SerializeField] private Transform player;             // Player transform to track
-    
-    // Pool of inactive mobs
+    [SerializeField] private Transform player;
+
     private Dictionary<string, Queue<GameObject>> mobPool = new Dictionary<string, Queue<GameObject>>();
-    
-    // List of currently active mobs
     private List<GameObject> activeMobs = new List<GameObject>();
-    
-    // Last known player position for movement direction calculation
-    private Vector3 lastPlayerPosition;
-    
-    // Cooldown timer
-    private float cooldownTimer = 0f;
-    
+    private float cooldownTimer;
+    private Vector2 lastPlayerPosition;
+
     private void Start()
     {
-        if (player == null)
-        {
-            player = GameObject.FindGameObjectWithTag("Player").transform;
-        }
-        
-        if (mobContainer == null)
-        {
-            mobContainer = transform;
-        }
-        
-        lastPlayerPosition = player.position;
-        
-        // Initialize mob pools
+        InitializeReferences();
         InitializeMobPool();
     }
-    
-    private void Update()
+
+    private void InitializeReferences()
     {
-        // Update cooldown timer
-        cooldownTimer -= Time.deltaTime;
-        
-        // Get player movement direction
-        Vector3 playerDirection = (player.position - lastPlayerPosition).normalized;
-        
-        // If player hasn't moved much, use forward direction
-        if (playerDirection.magnitude < 0.1f)
-        {
-            playerDirection = player.forward;
-        }
-        
-        // Try to spawn mobs if we're under the limit and cooldown is ready
-        if (activeMobs.Count < maxActiveMobs && cooldownTimer <= 0f)
-        {
-            SpawnMobAhead(playerDirection);
-            cooldownTimer = spawnCooldown;
-        }
-        
-        // Check for mobs to despawn
-        ManageMobLifecycle();
-        
-        // Update last position
+        if (!player) player = GameObject.FindGameObjectWithTag("Player").transform;
+        if (!mobContainer) mobContainer = transform;
         lastPlayerPosition = player.position;
     }
-    
-    private void InitializeMobPool()
+
+    private void Update()
     {
-        // Create initial pools for each mob type
-        foreach (GameObject mobPrefab in mobPrefabs)
+        cooldownTimer -= Time.deltaTime;
+        UpdateSpawning();
+        ManageMobLifecycle();
+        UpdatePlayerTracking();
+    }
+
+    private void UpdateSpawning()
+    {
+        if (ShouldSpawn())
         {
-            string mobType = mobPrefab.name;
-            mobPool[mobType] = new Queue<GameObject>();
-            
-            // Pre-spawn 5 of each type
-            for (int i = 0; i < 5; i++)
-            {
-                GameObject mob = Instantiate(mobPrefab, mobContainer);
-                mob.SetActive(false);
-                mobPool[mobType].Enqueue(mob);
-            }
+            AttemptSpawn();
+            cooldownTimer = spawnCooldown;
         }
     }
-    
-    private void SpawnMobAhead(Vector3 playerDirection)
+
+    private bool ShouldSpawn()
     {
-        // Choose spawn position ahead of player in their movement direction
-        Vector3 spawnCenter = player.position + playerDirection * spawnDistance;
-        
-        // Randomize within spawn radius (on the xz plane for most games)
-        Vector2 randomCircle = Random.insideUnitCircle * spawnRadius;
-        Vector3 randomOffset = new Vector3(randomCircle.x, 0, randomCircle.y);
-        Vector3 spawnPosition = spawnCenter + randomOffset;
-        
-        // Raycast to find ground level
-        if (Physics.Raycast(spawnPosition + Vector3.up * 50f, Vector3.down, out RaycastHit hit, 100f, LayerMask.GetMask("Ground")))
+        return activeMobs.Count < maxActiveMobs && cooldownTimer <= 0;
+    }
+
+    private void AttemptSpawn()
+    {
+        Vector2 spawnDirection = GetSpawnDirection();
+        Vector2 spawnPosition = FindValidSpawnPosition(spawnDirection);
+
+        if (spawnPosition != Vector2.zero)
         {
-            spawnPosition.y = hit.point.y;
+            SpawnMob(spawnPosition);
         }
+    }
+
+    private Vector2 GetSpawnDirection()
+    {
+        Vector2 rawDirection = ((Vector2)player.position - lastPlayerPosition).normalized;
+        return rawDirection.magnitude < 0.1f ? Vector2.right : rawDirection;
+    }
+
+    private Vector2 FindValidSpawnPosition(Vector2 direction)
+    {
+        for (int i = 0; i < maxSpawnAttempts; i++)
+        {
+            Vector2 candidate = CalculateCandidatePosition(direction);
+            if (IsValidSpawnPoint(candidate)) return candidate;
+        }
+        return Vector2.zero;
+    }
+
+    private Vector2 CalculateCandidatePosition(Vector2 direction)
+    {
+        Vector2 basePosition = (Vector2)player.position + (direction * spawnDistance);
+        Vector2 randomOffset = Random.insideUnitCircle * spawnRadius;
+        Vector2 spawnPos = basePosition + randomOffset;
+
+        RaycastHit2D groundHit = Physics2D.Raycast(
+            spawnPos + Vector2.up * 2f,
+            Vector2.down,
+            4f,
+            groundLayer
+        );
+
+        return groundHit.collider ? groundHit.point : spawnPos;
+    }
+
+    private bool IsValidSpawnPoint(Vector2 position)
+    {
+        return Physics2D.OverlapCircle(position, 0.5f, groundLayer);
+    }
+
+    private void SpawnMob(Vector2 position)
+    {
+        GameObject mobPrefab = GetRandomMobPrefab();
+        GameObject mob = GetPooledMob(mobPrefab);
         
-        // Choose a random mob type
-        GameObject mobPrefab = mobPrefabs[Random.Range(0, mobPrefabs.Count)];
-        string mobType = mobPrefab.name;
-        
-        // Get mob from pool or create new one
-        GameObject mob = GetMobFromPool(mobType);
-        
-        // Position and activate the mob
-        mob.transform.position = spawnPosition;
-        mob.transform.rotation = Quaternion.Euler(0, Random.Range(0, 360), 0);
+        mob.transform.position = position;
         mob.SetActive(true);
-        
-        // Add to active mobs list
         activeMobs.Add(mob);
+
+        InitializeMonsterComponents(mob);
     }
-    
-    private GameObject GetMobFromPool(string mobType)
+
+    private GameObject GetRandomMobPrefab()
     {
-        // Try to get from pool
-        if (mobPool.ContainsKey(mobType) && mobPool[mobType].Count > 0)
-        {
-            return mobPool[mobType].Dequeue();
-        }
+        return mobPrefabs[Random.Range(0, mobPrefabs.Count)];
+    }
+
+    private GameObject GetPooledMob(GameObject prefab)
+    {
+        string key = prefab.name;
         
-        // Create new if pool is empty
-        GameObject mobPrefab = mobPrefabs.Find(p => p.name == mobType);
-        GameObject newMob = Instantiate(mobPrefab, mobContainer);
+        if (mobPool.TryGetValue(key, out Queue<GameObject> queue) && queue.Count > 0)
+        {
+            return queue.Dequeue();
+        }
+
+        GameObject newMob = Instantiate(prefab, mobContainer);
         return newMob;
     }
-    
-    private void ReturnMobToPool(GameObject mob)
+
+    private void InitializeMonsterComponents(GameObject mob)
     {
-        // Deactivate
-        mob.SetActive(false);
-        
-        // Remove from active list
-        activeMobs.Remove(mob);
-        
-        // Add to appropriate pool
-        string mobType = mob.name.Replace("(Clone)", "").Trim();
-        if (!mobPool.ContainsKey(mobType))
-        {
-            mobPool[mobType] = new Queue<GameObject>();
-        }
-        
-        mobPool[mobType].Enqueue(mob);
+        Monster monster = mob.GetComponent<Monster>();
+        if (!monster) return;
+
+        monster.Target = player;
+        monster.stateMachine.SwitchState(MonsterStateType.Chase);
     }
-    
+
     private void ManageMobLifecycle()
     {
-        // Check distance for each active mob
         for (int i = activeMobs.Count - 1; i >= 0; i--)
         {
             GameObject mob = activeMobs[i];
-            if (mob == null)
+            if (!mob)
             {
-                // Remove null references (destroyed mobs)
                 activeMobs.RemoveAt(i);
                 continue;
             }
-            
-            float distanceToPlayer = Vector3.Distance(mob.transform.position, player.position);
-            
-            // Despawn if too far
-            if (distanceToPlayer > despawnDistance)
+
+            if (Vector2.Distance(mob.transform.position, player.position) > despawnDistance)
             {
                 ReturnMobToPool(mob);
             }
         }
     }
-    
-    // Optional: Visualization for debugging
+
+    private void ReturnMobToPool(GameObject mob)
+    {
+        mob.SetActive(false);
+        activeMobs.Remove(mob);
+
+        Monster monster = mob.GetComponent<Monster>();
+        if (monster) monster.stateMachine.SwitchState(MonsterStateType.Idle);
+
+        string key = mob.name.Replace("(Clone)", "").Trim();
+        if (!mobPool.ContainsKey(key))
+        {
+            mobPool[key] = new Queue<GameObject>();
+        }
+        mobPool[key].Enqueue(mob);
+    }
+
+    private void InitializeMobPool()
+    {
+        foreach (GameObject prefab in mobPrefabs)
+        {
+            string key = prefab.name;
+            mobPool[key] = new Queue<GameObject>();
+
+            for (int i = 0; i < 3; i++)
+            {
+                GameObject mob = Instantiate(prefab, mobContainer);
+                mob.SetActive(false);
+                mobPool[key].Enqueue(mob);
+            }
+        }
+    }
+
+    private void UpdatePlayerTracking()
+    {
+        lastPlayerPosition = player.position;
+    }
+
     private void OnDrawGizmosSelected()
     {
-        if (player == null) return;
+        if (!player) return;
         
-        // Show spawn distance
         Gizmos.color = Color.green;
         Gizmos.DrawWireSphere(player.position, spawnDistance);
         
-        // Show despawn distance
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(player.position, despawnDistance);
     }

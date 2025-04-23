@@ -12,6 +12,15 @@ public abstract class Monster : MonoBehaviour
 
     public StateMachine stateMachine = new();
     
+    protected virtual void Start()
+    {
+        InitializeStates();
+    }
+
+    protected virtual void InitializeStates()
+    {
+        // Base states can be initialized here if needed
+    }
     public void Move(Vector2 velocity)
     {
         Rb.velocity = velocity;
