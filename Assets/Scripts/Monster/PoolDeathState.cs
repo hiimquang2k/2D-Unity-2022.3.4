@@ -24,7 +24,7 @@ public class PooledDeathState : IMonsterState
     public void Update()
     {
         _deathTimer -= Time.deltaTime;
-        
+
         // Handle fade out
         var sr = _skeleton.GetComponent<SpriteRenderer>();
         if (sr != null)
@@ -34,8 +34,9 @@ public class PooledDeathState : IMonsterState
             sr.color = color;
         }
 
-        if (_deathTimer <= 0)
+        if (_deathTimer <= 0 && _skeleton.gameObject.activeSelf)
         {
+            // Disable AFTER death sequence is complete
             _skeleton.gameObject.SetActive(false);
         }
     }

@@ -118,7 +118,7 @@ public class HealthSystem : MonoBehaviour
         CurrentHealth = Mathf.Min(healthData.maxHealth, CurrentHealth + amount);
     }
 
-    private void Die()
+    public void Die()
     {
         // Trigger death event
         OnDeath?.Invoke();

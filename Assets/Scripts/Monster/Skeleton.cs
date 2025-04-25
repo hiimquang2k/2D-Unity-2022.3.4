@@ -49,13 +49,22 @@ public class Skeleton : Monster
 
     public void TriggerDeath()
     {
+        // 1. Notify Necromancer first
         OnDeath?.Invoke(this);
+
+        // 2. Switch to death state (this will handle visuals/cleanup)
         stateMachine.SwitchState(MonsterStateType.Death);
+
+        // 3. Clear the event AFTER invoking it
+        OnDeath = null;
     }
 
     private void OnDisable()
     {
-        // Clean up event subscriptions
-        OnDeath = null;
+        // Safety check - if we're being disabled without proper death sequence
+        if (stateMachine.CurrentStateType != MonsterStateType.Death)
+        {
+            TriggerDeath(); // Force death cleanup
+        }
     }
 }

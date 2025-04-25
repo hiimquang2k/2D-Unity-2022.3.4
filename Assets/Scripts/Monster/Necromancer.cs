@@ -39,19 +39,40 @@ public class Necromancer : Monster
     // Called via Animation Event
     public void SummonSkeleton()
     {
-        if (_currentSkeletons >= ((NecromancerData)Data).maxSkeletons) return;
+        if (_currentSkeletons >= ((NecromancerData)Data).maxSkeletons)
+        {
+            Debug.LogWarning("Max skeletons reached!");
+            return;
+        }
 
-        Vector2 spawnPos = (Vector2)transform.position + UnityEngine.Random.insideUnitCircle * 2f;
-        Skeleton skeleton = SkeletonPool.Instance.GetFromPool(spawnPos, Quaternion.identity);
-        
+        Skeleton skeleton = SkeletonPool.Instance.GetFromPool(
+            (Vector2)transform.position + UnityEngine.Random.insideUnitCircle * 2f,
+            Quaternion.identity);
+
+        if (skeleton == null)
+        {
+            Debug.LogError("Failed to get skeleton from pool!");
+            return;
+        }
+
         skeleton.Initialize(this);
+
+        // Verify event subscription
+        Debug.Log($"Subscribing to skeleton death (Current: {_currentSkeletons})");
         skeleton.OnDeath += OnSkeletonDeath;
+
         _currentSkeletons++;
+        _lastSummonTime = Time.time;
     }
 
     private void OnSkeletonDeath(Skeleton skeleton)
     {
+        if (skeleton == null) return;
+
         _currentSkeletons--;
+        Debug.Log($"Skeleton death confirmed! Current: {_currentSkeletons}");
+
+        // Cleanup
         skeleton.OnDeath -= OnSkeletonDeath;
     }
 }
