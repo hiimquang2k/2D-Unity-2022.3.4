@@ -134,30 +134,41 @@ public class ImprovedCameraShake : MonoBehaviour
         }
     }
 
-    private IEnumerator CinemachineShake()
+private IEnumerator CinemachineShake()
+{
+    // Store original camera position
+    Vector3 originalPos = virtualCamera.transform.position;
+    
+    while (currentShakeDuration > 0f)
     {
-        while (currentShakeDuration > 0f)
-        {
-            if (noiseComponent != null)
-            {
-                noiseComponent.m_AmplitudeGain = currentShakeIntensity;
-                noiseComponent.m_FrequencyGain = currentShakeIntensity;
-            }
-
-            currentShakeDuration -= Time.deltaTime;
-            yield return null;
-        }
-
         if (noiseComponent != null)
         {
-            noiseComponent.m_AmplitudeGain = 0f;
-            noiseComponent.m_FrequencyGain = 0f;
+            noiseComponent.m_AmplitudeGain = currentShakeIntensity;
+            noiseComponent.m_FrequencyGain = currentShakeIntensity * 0.5f;
         }
-
-        isShaking = false;
-        currentShakeIntensity = 0f;
+        
+        // Lock Z-position after each frame's shake calculation
+        virtualCamera.transform.position = new Vector3(
+            virtualCamera.transform.position.x,
+            virtualCamera.transform.position.y,
+            originalPos.z
+        );
+        
+        currentShakeDuration -= Time.deltaTime;
+        yield return null;
     }
 
+    if (noiseComponent != null)
+    {
+        noiseComponent.m_AmplitudeGain = 0f;
+        noiseComponent.m_FrequencyGain = 0f;
+    }
+    
+    // Ensure final position is correct
+    virtualCamera.transform.position = originalPos;
+    isShaking = false;
+    currentShakeIntensity = 0f;
+}
     private void SubscribeToHealthSystem(HealthSystem healthSystem)
     {
         Debug.Log("CameraShake: Subscribing to health system: " + healthSystem.gameObject.name);

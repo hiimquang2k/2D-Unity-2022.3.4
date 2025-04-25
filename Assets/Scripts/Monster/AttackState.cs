@@ -88,7 +88,7 @@ public class AttackState : IMonsterState
 
         foreach (Collider2D hit in hits)
         {
-            if (hit.TryGetComponent<DamageSystem>(out var damageSystem))
+            if (hit.CompareTag("Player") && hit.TryGetComponent<DamageSystem>(out var damageSystem))
             {
                 damageSystem.ApplyDamage(
                     _monster.Data.attackDamage,

@@ -1,4 +1,5 @@
 using UnityEngine;
+using System;
 
 public class Necromancer : Monster
 {
@@ -10,6 +11,9 @@ public class Necromancer : Monster
         stateMachine.AddState(MonsterStateType.Attack, new AttackState(this));
         stateMachine.AddState(MonsterStateType.Chase, new ChaseState(this));
         stateMachine.AddState(MonsterStateType.Summon, new SummonState(this));
+        stateMachine.AddState(MonsterStateType.Idle, new IdleState(this));
+        stateMachine.AddState(MonsterStateType.Patrol, new PatrolState(this));
+        stateMachine.SwitchState(MonsterStateType.Idle);
     }
 
     protected override void Update()
@@ -35,20 +39,19 @@ public class Necromancer : Monster
     // Called via Animation Event
     public void SummonSkeleton()
     {
-        NecromancerData necroData = (NecromancerData)Data;
+        if (_currentSkeletons >= ((NecromancerData)Data).maxSkeletons) return;
 
-        if (necroData.skeletonPrefab == null)
-        {
-            Debug.LogError("No skeleton prefab assigned!");
-            return;
-        }
-
-        Vector2 spawnPos = (Vector2)transform.position + Random.insideUnitCircle * necroData.summonRadius;
-        Instantiate(necroData.skeletonPrefab, spawnPos, Quaternion.identity);
-
+        Vector2 spawnPos = (Vector2)transform.position + UnityEngine.Random.insideUnitCircle * 2f;
+        Skeleton skeleton = SkeletonPool.Instance.GetFromPool(spawnPos, Quaternion.identity);
+        
+        skeleton.Initialize(this);
+        skeleton.OnDeath += OnSkeletonDeath;
         _currentSkeletons++;
-        _lastSummonTime = Time.time;
+    }
 
-        Debug.Log($"Summoned skeleton {_currentSkeletons}/{necroData.maxSkeletons}");
+    private void OnSkeletonDeath(Skeleton skeleton)
+    {
+        _currentSkeletons--;
+        skeleton.OnDeath -= OnSkeletonDeath;
     }
 }

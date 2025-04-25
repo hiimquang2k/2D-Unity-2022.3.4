@@ -21,7 +21,7 @@ MonoBehaviour:
   canChase: 1
   canAttack: 1
   canSummon: 0
-  attackRange: 1.5
+  attackRange: 5.08
   attackCooldown: 1
   attackVariance: 0.2
   attackDamage: 10

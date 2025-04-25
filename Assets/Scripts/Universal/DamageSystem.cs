@@ -43,9 +43,7 @@ public class DamageSystem : MonoBehaviour
         rb = GetComponent<Rigidbody2D>();
         playerMovement = GetComponent<PlayerMovement>();
         healthSystem = GetComponent<HealthSystem>();
-
         elementStatus = GetComponent<ElementStatus>();
-    if (elementStatus == null) elementStatus = gameObject.AddComponent<ElementStatus>();
     }
 
     private void Update()
@@ -112,6 +110,9 @@ public class DamageSystem : MonoBehaviour
 {
     if (!canTakeDamage) return;
 
+    // Store the damage source position for knockback
+    lastDamageSource = sourcePosition;
+    
     // Convert DamageType to Element for synergies
     Element? element = type switch
     {

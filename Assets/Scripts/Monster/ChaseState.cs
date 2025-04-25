@@ -22,6 +22,23 @@ public class ChaseState : IMonsterState
     
     public void Update()
     {
+        if (_monster.Target == null) // If target lost
+        {
+            _monster.stateMachine.SwitchState(MonsterStateType.Idle);
+            return;
+        }
+
+        // Calculate distance to target
+        float distance = Vector2.Distance(_monster.transform.position, _monster.Target.position);
+
+        // Transition to attack if in range
+        if (distance <= _monster.Data.attackRange && _monster.Data.canAttack)
+        {
+            _monster.stateMachine.SwitchState(MonsterStateType.Attack);
+            return;
+        }
+
+        // Continue chasing logic
         if (Time.time - _lastUpdateTime > UpdateInterval)
         {
             Vector2 direction = (_monster.Target.position - _monster.transform.position).normalized;

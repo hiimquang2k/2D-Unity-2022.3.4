@@ -59,12 +59,39 @@ public abstract class Monster : MonoBehaviour
 
     protected virtual void Update()
     {
+        FindTarget();
+        
         if (Target != null)
         {
             Vector2 direction = (Target.position - transform.position).normalized;
             directionManager.UpdateDirection(direction.x, direction.y);
         }
         stateMachine.Update();
+    }
+
+    private void FindTarget()
+    {
+        // If we already have a target and it's still in range, keep it
+        if (Target != null && 
+            Vector2.Distance(transform.position, Target.position) <= Data.aggroRange * 1.2f)
+        {
+            return;
+        }
+
+        // Otherwise look for new target
+        GameObject player = GameObject.FindGameObjectWithTag("Player");
+        if (player != null)
+        {
+            float distance = Vector2.Distance(transform.position, player.transform.position);
+            if (distance <= Data.aggroRange)
+            {
+                Target = player.transform;
+                return;
+            }
+        }
+
+        // No valid target found
+        Target = null;
     }
 
     protected virtual void Reset()
