@@ -52,7 +52,11 @@ public class SkeletonPool : MonoBehaviour
         skeleton.transform.position = position;
         skeleton.transform.rotation = rotation;
         skeleton.gameObject.SetActive(true);
-        
+        if (!skeleton.stateMachine.HasState(MonsterStateType.Death))
+        {
+            Debug.LogWarning("Skeleton from pool missing states! Re-initializing...");
+            skeleton.PoolInitialize();
+        }
         // Reset and prepare skeleton
         skeleton.ResetSkeleton();
         skeleton.stateMachine.SwitchState(MonsterStateType.Idle);
@@ -60,10 +64,19 @@ public class SkeletonPool : MonoBehaviour
         return skeleton;
     }
 
-    public void ReturnToPool(Skeleton skeleton)
+public void ReturnToPool(Skeleton skeleton)
+{
+    if (skeleton == null) return;
+    
+    // Reset health before returning to pool
+    var healthSystem = skeleton.GetComponent<HealthSystem>();
+    if (healthSystem != null)
     {
-        skeleton.gameObject.SetActive(false);
-        skeleton.stateMachine.Reset(); // Clear current state
-        _pool.Enqueue(skeleton);
+        healthSystem.CurrentHealth = healthSystem.GetMaxHealth();
     }
+    
+    skeleton.gameObject.SetActive(false);
+    skeleton.stateMachine.Reset();
+    _pool.Enqueue(skeleton);
+}
 }

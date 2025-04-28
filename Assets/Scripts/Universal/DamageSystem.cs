@@ -18,7 +18,7 @@ public class DamageSystem : MonoBehaviour
 {
     public HealthSystem healthSystem; // Reference to the HealthSystem
     private Animator animator; // Animator for triggering animations
-    private ElementStatus elementStatus;
+
     [Header("Invulnerability Settings")]
     [SerializeField] private bool canTakeDamage = true;
     [SerializeField] private bool canBeKnockedBack = true;
@@ -43,7 +43,6 @@ public class DamageSystem : MonoBehaviour
         rb = GetComponent<Rigidbody2D>();
         playerMovement = GetComponent<PlayerMovement>();
         healthSystem = GetComponent<HealthSystem>();
-        elementStatus = GetComponent<ElementStatus>();
     }
 
     private void Update()
@@ -112,21 +111,6 @@ public class DamageSystem : MonoBehaviour
 
     // Store the damage source position for knockback
     lastDamageSource = sourcePosition;
-    
-    // Convert DamageType to Element for synergies
-    Element? element = type switch
-    {
-        DamageType.Fire => Element.Fire,
-        DamageType.Lightning => Element.Lightning,
-        DamageType.Water => Element.Water,
-        DamageType.Earth => Element.Earth,
-        _ => null
-    };
-
-    if (element.HasValue)
-    {
-        ApplyElementalEffect(element.Value, 3f); // 3-second duration
-    }
 
     // Existing damage logic
     if (type != DamageType.DoT)
@@ -135,13 +119,6 @@ public class DamageSystem : MonoBehaviour
         if (canBeKnockedBack) HandleKnockback();
     }
 }
-    public void ApplyElementalEffect(Element element, float duration)
-    {
-        if (elementStatus != null)
-        {
-            elementStatus.ApplyElement(element, duration);
-        }
-    }
     private void HandleKnockback()
     {
         if (rb == null || isKnockedBack || !canBeKnockedBack)

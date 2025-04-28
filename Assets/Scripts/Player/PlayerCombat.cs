@@ -1,10 +1,17 @@
 using UnityEngine;
+using System.Collections.Generic;
 using System.Collections;
 
 public class PlayerCombat : MonoBehaviour
 {
+    [Header("Dependencies")]
     public DamageSystem damageSystem;
     public ImprovedCameraShake cameraShake;
+    [SerializeField] private PlayerMovement playerMovement;
+    [SerializeField] private CooldownSystem cooldownSystem;
+    [SerializeField] private DirectionManager directionManager;
+    [SerializeField] private ElementalSword swordGlow;
+    [SerializeField] private StatusEffectManager statusManager;
 
     [Header("Attack Settings")]
     [SerializeField] private int attackDamage1 = 20;
@@ -14,11 +21,6 @@ public class PlayerCombat : MonoBehaviour
     [SerializeField] private float comboWindow = 0.8f;
     [SerializeField] private LayerMask enemyLayer;
     [SerializeField] private Transform attackOrigin;
-
-    [Header("References")]
-    [SerializeField] private PlayerMovement playerMovement;
-    [SerializeField] private CooldownSystem cooldownSystem;
-    [SerializeField] private DirectionManager directionManager;
 
     [Header("Hitstop Settings")]
     [SerializeField] private float hitstopDuration = 0.1f;
@@ -40,7 +42,9 @@ public class PlayerCombat : MonoBehaviour
     {
         anim = GetComponent<Animator>();
         audioSource = GetComponent<AudioSource>();
-        
+        swordGlow = GetComponentInChildren<ElementalSword>();
+        statusManager = FindObjectOfType<StatusEffectManager>();
+
         if (audioSource == null)
         {
             audioSource = gameObject.AddComponent<AudioSource>();
@@ -51,14 +55,9 @@ public class PlayerCombat : MonoBehaviour
             cooldownSystem = gameObject.AddComponent<CooldownSystem>();
         }
 
-        // Find or assign camera shake component
         if (cameraShake == null)
         {
             cameraShake = FindObjectOfType<ImprovedCameraShake>();
-            if (cameraShake == null)
-            {
-                Debug.LogError("CameraShake component not found in the scene!");
-            }
         }
     }
 
@@ -72,26 +71,52 @@ public class PlayerCombat : MonoBehaviour
 
     void Update()
     {
-        // Manage cooldown
         cooldownSystem.UpdateCooldown();
         canAttack = !cooldownSystem.IsOnCooldown("Attack");
 
-        // Reset combo if window expires
         if (Time.time - lastAttackTime > comboWindow && comboCount > 0)
         {
             ResetCombo();
         }
 
-        // Check for attack input
         if (Input.GetKeyDown(KeyCode.C) && canAttack)
         {
             Attack();
         }
+
+        if (Input.GetKeyDown(KeyCode.E))
+        {
+            CycleElement();
+        }
+
+    if (Input.GetKeyDown(KeyCode.Q))
+    {
+        Debug.Log("Q pressed - Current Element: " + swordGlow.CurrentElement);
+        if (!swordGlow.isOnCooldown && swordGlow.CurrentElement == ElementalSword.Element.Lightning)
+        {
+            Debug.Log("Attempting lightning strike...");
+            UseElementalSkill();
+        }
     }
+    }
+
+    private void CycleElement()
+    {
+        if (swordGlow == null) return;
+        
+        int nextElement = ((int)swordGlow.CurrentElement + 1) % 3;
+        swordGlow.SetElement((ElementalSword.Element)nextElement);
+    }
+
+    private void UseElementalSkill()
+    {
+        if (swordGlow == null) return;
+    
+        swordGlow.UseElementalSkill();
+}
 
     void Attack()
     {
-        // Can only perform the next combo attack during the window
         if (comboCount == 1 && !comboEnabled)
             return;
 
@@ -101,7 +126,6 @@ public class PlayerCombat : MonoBehaviour
         if (comboCount == 1)
         {
             anim.Play("Attack1");
-            // First attack initiated, wait for animation event to enable combo
         }
         else if (comboCount == 2)
         {
@@ -111,109 +135,138 @@ public class PlayerCombat : MonoBehaviour
         }
     }
 
-    // Called by animation event in Attack1 animation
     public void EnableCombo()
     {
         comboEnabled = true;
     }
 
-    // Called by animation event in both animations when attack point is reached
     public void PerformAttack()
     {
-        if (directionManager == null)
+        if (directionManager == null || attackOrigin == null)
         {
-            Debug.LogError("DirectionManager is not assigned!");
+            Debug.LogError("Required components not assigned!");
             return;
         }
 
-        if (attackOrigin == null)
+        Vector2 attackDirection = directionManager.GetDirection();
+        Vector2 attackStartPos = (Vector2)attackOrigin.position;
+
+        HashSet<HealthSystem> hitEnemies = new HashSet<HealthSystem>();
+
+        // Combined detection using circle and box casts
+        DetectEnemies(attackStartPos, attackDirection, hitEnemies);
+
+        bool hitAnyEnemy = ProcessHits(hitEnemies);
+
+        if (hitAnyEnemy)
         {
-            Debug.LogError("AttackOrigin is not assigned!");
-            return;
+            ApplyHitEffects();
+        }
+    }
+
+    private void DetectEnemies(Vector2 origin, Vector2 direction, HashSet<HealthSystem> enemies)
+    {
+        // Circle detection for close range
+        Collider2D[] closeHits = Physics2D.OverlapCircleAll(origin, 0.5f, enemyLayer);
+        foreach (Collider2D collider in closeHits)
+        {
+            TryAddEnemy(collider, enemies);
         }
 
-        Vector2 direction = directionManager.GetDirection();
-        RaycastHit2D hit = Physics2D.Raycast(attackOrigin.position, direction, attackDistance);
-
-        Debug.DrawRay(attackOrigin.position, direction * attackDistance, Color.red, 0.2f);
-
-        if (hit.collider != null && hit.collider.CompareTag("Monster"))
+        // Box cast for primary attack range
+        RaycastHit2D[] boxHits = Physics2D.BoxCastAll(
+            origin,
+            new Vector2(0.8f, 1.2f),
+            0f,
+            direction,
+            attackDistance,
+            enemyLayer
+        );
+        foreach (RaycastHit2D hit in boxHits)
         {
-            Debug.Log("Hit enemy: " + hit.collider.name);
+            if (hit.collider != null)
+            {
+                TryAddEnemy(hit.collider, enemies);
+            }
+        }
+    }
 
-            // Get hit position for VFX
-            Vector2 hitPosition = hit.point;
-
-            HealthSystem enemyHealth = hit.collider.GetComponent<HealthSystem>();
+    private bool ProcessHits(HashSet<HealthSystem> enemies)
+    {
+        bool hitAny = false;
+        foreach (HealthSystem enemyHealth in enemies)
+        {
             if (enemyHealth != null)
             {
-                // Apply different damage based on which attack in the combo
-                int damageToApply = (comboCount == 1) ? attackDamage1 : attackDamage2;
-                enemyHealth.TakeDamage(damageToApply, DamageType.Physical);
+                int damage = (comboCount == 1) ? attackDamage1 : attackDamage2;
+                enemyHealth.TakeDamage(damage, DamageType.Physical);
                 
-                // Apply hitstop
-                StartCoroutine(ApplyHitstop(hitstopDuration, hitstopTimeScale));
-                
-                // Play hit VFX at contact point
+                // Apply elemental effects
+                if (swordGlow != null)
+                {
+                    swordGlow.ApplyElementalEffect(enemyHealth.gameObject);
+                    swordGlow.TriggerHitEffect();
+                }
+
                 if (hitEffectPrefab != null)
                 {
-                    Instantiate(hitEffectPrefab, hitPosition, Quaternion.identity);
+                    Instantiate(hitEffectPrefab, enemyHealth.transform.position, Quaternion.identity);
                 }
-                
-                // Play hit sound
-                PlayHitSound();
-                
-                // Trigger camera shake on hit only if the player is the attacker
-                if (cameraShake != null && gameObject.CompareTag("Player") && hit.collider.CompareTag("Monster"))
-                {
-                    cameraShake.TriggerCameraShake(gameObject);
-                }
+
+                hitAny = true;
             }
+        }
+        return hitAny;
+    }
+
+    private void ApplyHitEffects()
+    {
+        StartCoroutine(ApplyHitstop(hitstopDuration, hitstopTimeScale));
+        PlayHitSound();
+        
+        if (cameraShake != null)
+        {
+            cameraShake.TriggerCameraShake(gameObject);
         }
     }
 
-    // Play appropriate hit sound based on combo count
+    private void TryAddEnemy(Collider2D collider, HashSet<HealthSystem> enemySet)
+    {
+        HealthSystem health = collider.GetComponent<HealthSystem>();
+        if (health != null)
+        {
+            enemySet.Add(health);
+        }
+    }
+
     private void PlayHitSound()
     {
-        if (audioSource != null)
+        if (audioSource == null) return;
+
+        AudioClip clipToPlay = (comboCount == 1) ? hitSound1 : hitSound2;
+        if (clipToPlay != null)
         {
-            AudioClip clipToPlay = (comboCount == 1) ? hitSound1 : hitSound2;
-            
-            if (clipToPlay != null)
-            {
-                audioSource.pitch = Random.Range(0.95f, 1.05f); // Slight variation
-                audioSource.PlayOneShot(clipToPlay);
-            }
+            audioSource.pitch = Random.Range(0.95f, 1.05f);
+            audioSource.PlayOneShot(clipToPlay);
         }
     }
 
-    // Hitstop coroutine
     private IEnumerator ApplyHitstop(float duration, float timeScale)
     {
-        // Store original time scale
         float originalTimeScale = Time.timeScale;
-        
-        // Apply hitstop (slow time)
         Time.timeScale = timeScale;
-        
-        // Wait for the duration (in real time, not game time)
         yield return new WaitForSecondsRealtime(duration);
-        
-        // Restore original time scale
         Time.timeScale = originalTimeScale;
     }
 
-    // Called by animation event at the end of Attack1
     public void AttackComplete()
     {
-        // If we didn't start another attack, reset after a short delay
         if (comboCount == 1)
         {
             canAttack = true;
         }
     }
 
-    // Called by animation event at the end of Attack2
     public void ComboComplete()
     {
         canAttack = true;
@@ -223,16 +276,5 @@ public class PlayerCombat : MonoBehaviour
     {
         comboCount = 0;
         comboEnabled = false;
-    }
-
-    // For debugging in editor
-    private void OnDrawGizmosSelected()
-    {
-        if (attackOrigin != null && directionManager != null)
-        {
-            Gizmos.color = Color.red;
-            Vector2 direction = directionManager.GetDirection();
-            Gizmos.DrawLine(attackOrigin.position, attackOrigin.position + (Vector3)(direction * attackDistance));
-        }
     }
 }

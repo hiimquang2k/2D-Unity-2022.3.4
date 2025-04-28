@@ -23,7 +23,7 @@ public class Necromancer : Monster
         if (ShouldSummon())
         {
             stateMachine.SwitchState(MonsterStateType.Summon);
-            Debug.Log("Attempting to summon skeleton"); // Debug line
+            //Debug.Log("Attempting to summon skeleton"); // Debug line
         }
     }
 
@@ -32,7 +32,7 @@ public class Necromancer : Monster
         bool canSummon = _currentSkeletons < ((NecromancerData)Data).maxSkeletons &&
                         Time.time > _lastSummonTime + ((NecromancerData)Data).summonCooldown;
 
-        Debug.Log($"Can summon: {canSummon} | Current: {_currentSkeletons} | Last summon: {Time.time - _lastSummonTime}s ago");
+        //Debug.Log($"Can summon: {canSummon} | Current: {_currentSkeletons} | Last summon: {Time.time - _lastSummonTime}s ago");
         return canSummon;
     }
 

@@ -45,6 +45,13 @@ public class StateMachine
     /// <returns>True if transition succeeded</returns>
     public bool SwitchState(MonsterStateType newState)
     {
+    if (!_states.ContainsKey(newState))
+    {
+        // Improved error message shows ALL registered states
+        var availableStates = string.Join(", ", _states.Keys);
+        Debug.LogError($"State {newState} not found! Available: {(availableStates.Length > 0 ? availableStates : "NONE")}");
+        return false;
+    }
         if (!_states.TryGetValue(newState, out var nextState))
         {
             Debug.LogError($"State {newState} not found!");

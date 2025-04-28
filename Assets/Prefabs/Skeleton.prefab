@@ -18,7 +18,7 @@ GameObject:
   - component: {fileID: -6910284979337354173}
   m_Layer: 3
   m_Name: Skeleton
-  m_TagString: Monster
+  m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -129,6 +129,11 @@ MonoBehaviour:
   Animator: {fileID: 6547365771399180330}
   Rb: {fileID: 7021925134009783157}
   _directionManager: {fileID: 0}
+  groundLayer:
+    serializedVersion: 2
+    m_Bits: 64
+  groundCheckDistance: 0.1
+  groundCheckPoint: {fileID: 5791372244182241610}
 --- !u!50 &7021925134009783157
 Rigidbody2D:
   serializedVersion: 4

@@ -9,6 +9,10 @@ public abstract class Monster : MonoBehaviour
     public Rigidbody2D Rb;
     [Header("Direction")]
     [SerializeField] private DirectionManager _directionManager;
+    [Header("Ground Settings")]
+    [SerializeField] private LayerMask groundLayer;
+    [SerializeField] private float groundCheckDistance = 0.1f;
+    [SerializeField] private Transform groundCheckPoint;
 
     public StateMachine stateMachine = new();
 
@@ -43,9 +47,34 @@ public abstract class Monster : MonoBehaviour
     {
         // Base states can be initialized here if needed
     }
+    public bool IsGrounded()
+    {
+        if (groundCheckPoint == null)
+        {
+            Debug.LogWarning("Ground check point not assigned!");
+            return true; // Fallback to true to avoid breaking movement
+        }
+        
+        RaycastHit2D hit = Physics2D.Raycast(
+            groundCheckPoint.position,
+            Vector2.down,
+            groundCheckDistance,
+            groundLayer
+        );
+        
+        Debug.DrawRay(groundCheckPoint.position, Vector2.down * groundCheckDistance, Color.red);
+        return hit.collider != null;
+    }
 
+    // Modify the Move method to respect ground
     public void Move(Vector2 velocity)
     {
+        if (!IsGrounded())
+        {
+            // If not grounded, only allow horizontal movement
+            velocity.y = Rb.velocity.y; // Maintain current vertical velocity
+        }
+
         Rb.velocity = velocity;
 
         // Only trigger walk animation above a threshold speed
@@ -69,6 +98,14 @@ public abstract class Monster : MonoBehaviour
         stateMachine.Update();
     }
 
+    private void FixedUpdate()
+    {
+        // Apply slight downward force when grounded to prevent bouncing
+        if (IsGrounded() && Rb.velocity.y > 0)
+        {
+            Rb.AddForce(Vector2.down * 5f);
+        }
+    }
     private void FindTarget()
     {
         // If we already have a target and it's still in range, keep it

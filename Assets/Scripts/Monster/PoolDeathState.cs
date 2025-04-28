@@ -2,7 +2,7 @@ using UnityEngine;
 
 public class PooledDeathState : IMonsterState
 {
-    private readonly Skeleton _skeleton;
+    private Skeleton _skeleton;
     private float _deathTimer;
 
     public PooledDeathState(Skeleton skeleton)
