@@ -6,10 +6,13 @@ public class MobSpawner : MonoBehaviour
     [Header("Spawning Settings")]
     [SerializeField] private float spawnDistance = 15f;
     [SerializeField] private float despawnDistance = 25f;
-    [SerializeField] private float spawnRadius = 8f;
+    [SerializeField] private float spawnWidth = 16f;
+    [SerializeField] private float spawnHeight = 10f;
     [SerializeField] private int maxActiveMobs = 12;
     [SerializeField] private float spawnCooldown = 2.5f;
     [SerializeField] private int maxSpawnAttempts = 5;
+    [SerializeField] private float minHeightAbovePlayer = 1f;
+    [SerializeField] private float minHeightAboveGround = 1f;
 
     [Header("Layer Settings")]
     [SerializeField] private LayerMask groundLayer;
@@ -26,6 +29,7 @@ public class MobSpawner : MonoBehaviour
     private float cooldownTimer;
     private Vector2 lastPlayerPosition;
     private bool spawningEnabled = true;
+
     private void Start()
     {
         InitializeReferences();
@@ -78,37 +82,67 @@ public class MobSpawner : MonoBehaviour
         for (int i = 0; i < maxSpawnAttempts; i++)
         {
             Vector2 candidate = CalculateCandidatePosition(direction);
-            if (IsValidSpawnPoint(candidate)) return candidate;
+            if (IsValidSpawnPoint(candidate))
+            {
+                return candidate;
+            }
         }
         return Vector2.zero;
     }
 
     private Vector2 CalculateCandidatePosition(Vector2 direction)
     {
+        // Calculate base position in front of the player
         Vector2 basePosition = (Vector2)player.position + (direction * spawnDistance);
-        Vector2 randomOffset = Random.insideUnitCircle * spawnRadius;
-        Vector2 spawnPos = basePosition + randomOffset;
 
-        RaycastHit2D groundHit = Physics2D.Raycast(
-            spawnPos + Vector2.up * 2f,
-            Vector2.down,
-            4f,
-            groundLayer
-        );
+        // Calculate random offset within rectangle bounds
+        float randomX = Random.Range(-spawnWidth / 2f, spawnWidth / 2f);
 
-        return groundHit.collider ? groundHit.point : spawnPos;
+        // Find ground height at this x position
+        float groundHeight = FindGroundHeight(basePosition.x + randomX);
+
+        // Calculate y position above ground and player
+        float minY = Mathf.Max(player.position.y, groundHeight) + minHeightAboveGround;
+        float randomY = Random.Range(0, spawnHeight);
+
+        return new Vector2(basePosition.x + randomX, minY + randomY);
+    }
+
+    private float FindGroundHeight(float xPosition)
+    {
+        // Raycast down from above the player to find ground height
+        Vector2 rayStart = new Vector2(xPosition, player.position.y + 10f);
+        RaycastHit2D hit = Physics2D.Raycast(rayStart, Vector2.down, 20f, groundLayer);
+
+        return hit.collider ? hit.point.y : player.position.y;
     }
 
     private bool IsValidSpawnPoint(Vector2 position)
     {
-        return Physics2D.OverlapCircle(position, 0.5f, groundLayer);
+        // Check if there's ground below this position
+        RaycastHit2D groundCheck = Physics2D.Raycast(
+            position + Vector2.up * 0.5f, // Start slightly above
+            Vector2.down,
+            spawnHeight + 1f, // Check all the way down through our spawn height
+            groundLayer
+        );
+
+        // Position is valid if:
+        // 1. It's above the player (y position check)
+        // 2. There is ground below it
+        // 3. There are no obstacles at the spawn position itself
+        bool hasGroundBelow = groundCheck.collider != null;
+        bool isAbovePlayer = position.y > player.position.y;
+        bool isClearAtPosition = !Physics2D.OverlapPoint(position, groundLayer);
+
+        return isAbovePlayer && hasGroundBelow && isClearAtPosition;
     }
 
     private void SpawnMob(Vector2 position)
     {
         GameObject mobPrefab = GetRandomMobPrefab();
         GameObject mob = GetPooledMob(mobPrefab);
-        
+
         mob.transform.position = position;
         mob.SetActive(true);
         activeMobs.Add(mob);
@@ -124,7 +158,7 @@ public class MobSpawner : MonoBehaviour
     private GameObject GetPooledMob(GameObject prefab)
     {
         string key = prefab.name;
-        
+
         if (mobPool.TryGetValue(key, out Queue<GameObject> queue) && queue.Count > 0)
         {
             return queue.Dequeue();
@@ -140,14 +174,12 @@ public class MobSpawner : MonoBehaviour
         if (!monster) return;
 
         monster.Target = player;
-        
-        // Ensure states are initialized before switching
+
         if (monster is Necromancer necro)
         {
             necro.Initialize();
         }
-        
-        // Now it's safe to switch to Idle state
+
         monster.stateMachine.SwitchState(MonsterStateType.Idle);
     }
 
@@ -220,20 +252,26 @@ public class MobSpawner : MonoBehaviour
         }
     }
 
-    // Modify ShouldSpawn
     private bool ShouldSpawn()
     {
-        return spawningEnabled && 
-               activeMobs.Count < maxActiveMobs && 
+        return spawningEnabled &&
+               activeMobs.Count < maxActiveMobs &&
                cooldownTimer <= 0;
     }
+
     private void OnDrawGizmosSelected()
     {
         if (!player) return;
-        
+
+        // Draw spawn rectangle
         Gizmos.color = Color.green;
-        Gizmos.DrawWireSphere(player.position, spawnDistance);
-        
+        Vector2 rectCenter = (Vector2)player.position +
+                           (Vector2.right * spawnDistance) +
+                           Vector2.up * (minHeightAbovePlayer + spawnHeight / 2f);
+        Vector2 rectSize = new Vector2(spawnWidth, spawnHeight);
+        Gizmos.DrawWireCube(rectCenter, rectSize);
+
+        // Draw despawn distance
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(player.position, despawnDistance);
     }

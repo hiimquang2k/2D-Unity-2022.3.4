@@ -9,15 +9,19 @@ public class BlackHole : MonoBehaviour
     [SerializeField] private float spawnDelay = 2f;
     [SerializeField] private float flickerInterval = 0.1f;
     [SerializeField] private float spawnUptime = 5f;
-     
+
     [Header("Pull Settings")]
     [SerializeField] private float pullForce = 10f;
     [SerializeField] private float pullRadius = 5f;
-    
+
     [Header("Damage Settings")]
     [SerializeField] private float damageRadius = 1f;
     [SerializeField] private int damagePerTick = 10;
     [SerializeField] private float tickInterval = 0.5f;
+
+    [Header("Indicator Settings")]
+    [SerializeField] private GameObject radiusIndicatorPrefab; // New prefab for the pull radius indicator
+    [SerializeField] private Color indicatorColor = new Color(1f, 0f, 0f, 0.2f); // Semi-transparent red
 
     [Header("SFX")]
     [SerializeField] private AudioClip warningSound;
@@ -32,6 +36,7 @@ public class BlackHole : MonoBehaviour
     private List<SpriteRenderer> distortionRenderers = new List<SpriteRenderer>();
     private List<Behaviour> distortionComponents = new List<Behaviour>();
     private GameObject activeIndicator;
+    private GameObject radiusIndicator; // Reference to the radius indicator
     private HashSet<DamageSystem> affectedPlayers = new HashSet<DamageSystem>();
     private Coroutine damageCoroutine;
     private Collider2D blackHoleCollider;
@@ -59,9 +64,133 @@ public class BlackHole : MonoBehaviour
     private void Update()
     {
         if (!isActive) return;
-
-        // Moved physics/damage logic here
         HandleBlackHoleEffects();
+    }
+
+    private void CreateRadiusIndicator()
+    {
+        if (radiusIndicatorPrefab == null)
+        {
+            radiusIndicator = new GameObject("PullRadiusIndicator");
+            radiusIndicator.transform.position = transform.position;
+            radiusIndicator.transform.SetParent(transform);
+
+            var indicatorRenderer = radiusIndicator.AddComponent<SpriteRenderer>();
+            indicatorRenderer.sprite = CreateCircleSprite(pullRadius, indicatorColor);
+            indicatorRenderer.sortingLayerName = "Effects"; // Set to your desired layer
+            indicatorRenderer.sortingOrder = 2; // Lower numbers render behind higher numbers
+        }
+        else
+        {
+            radiusIndicator = Instantiate(radiusIndicatorPrefab, transform.position, Quaternion.identity);
+            radiusIndicator.transform.SetParent(transform);
+
+            // Configure sorting
+            var indicatorRenderer = radiusIndicator.GetComponent<SpriteRenderer>();
+            if (indicatorRenderer != null)
+            {
+                indicatorRenderer.sortingLayerName = "Effects";
+                indicatorRenderer.sortingOrder = -1;
+            }
+
+            // Scale adjustment
+            float scaleFactor = pullRadius * 2f;
+            radiusIndicator.transform.localScale = new Vector3(scaleFactor, scaleFactor, 1f);
+        }
+    }
+
+    private Sprite CreateCircleSprite(float radius, Color color)
+    {
+        // Create a simple circle sprite programmatically
+        int textureSize = Mathf.CeilToInt(radius * 32f);
+        Texture2D texture = new Texture2D(textureSize, textureSize);
+
+        Color[] pixels = new Color[textureSize * textureSize];
+        Vector2 center = new Vector2(textureSize / 2f, textureSize / 2f);
+
+        for (int y = 0; y < textureSize; y++)
+        {
+            for (int x = 0; x < textureSize; x++)
+            {
+                float distance = Vector2.Distance(new Vector2(x, y), center);
+                float normalizedDistance = distance / (textureSize / 2f);
+
+                if (normalizedDistance <= 1f)
+                {
+                    pixels[y * textureSize + x] = new Color(color.r, color.g, color.b, color.a * (1f - normalizedDistance));
+                }
+                else
+                {
+                    pixels[y * textureSize + x] = Color.clear;
+                }
+            }
+        }
+
+        texture.SetPixels(pixels);
+        texture.Apply();
+
+        Sprite sprite = Sprite.Create(
+            texture,
+            new Rect(0, 0, textureSize, textureSize),
+            new Vector2(0.5f, 0.5f),
+            textureSize / (radius * 2f)
+        );
+
+        return sprite;
+    }
+
+    private IEnumerator SpawnSequence()
+    {
+        isActive = false;
+        SetActiveState(false);
+
+        // Create and show the pull radius indicator
+        CreateRadiusIndicator();
+
+        if (indicatorPrefab == null)
+        {
+            Debug.LogError("Missing indicator prefab!");
+            yield break;
+        }
+
+        // Create and initialize indicator
+        activeIndicator = Instantiate(indicatorPrefab, transform.position, Quaternion.identity);
+        SpriteRenderer indicatorRenderer = activeIndicator.GetComponent<SpriteRenderer>();
+
+        if (indicatorRenderer == null)
+        {
+            Debug.LogError("Indicator prefab missing SpriteRenderer!");
+            yield break;
+        }
+
+        // Start flicker effect
+        Coroutine flickerRoutine = StartCoroutine(FlickerEffect(indicatorRenderer));
+
+        // Play warning sound
+        if (warningSound != null)
+        {
+            AudioSource.PlayClipAtPoint(warningSound, transform.position, 3.0f);
+        }
+
+        // Wait for spawn delay
+        yield return new WaitForSeconds(spawnDelay);
+
+        // Cleanup
+        StopCoroutine(flickerRoutine);
+        indicatorRenderer.enabled = true;
+        Destroy(activeIndicator);
+        Destroy(radiusIndicator); // Remove the radius indicator
+
+        // Activate black hole
+        if (activationSound != null)
+        {
+            AudioSource.PlayClipAtPoint(activationSound, transform.position);
+        }
+        SetActiveState(true);
+
+        // Start shrinking effect and wait for it to complete
+        yield return StartCoroutine(ShrinkOverTime(spawnUptime));
+        Destroy(gameObject);
     }
 
     private void HandleBlackHoleEffects()
@@ -157,66 +286,6 @@ public class BlackHole : MonoBehaviour
         }
     }
 
-    private IEnumerator SpawnSequence()
-    {
-        isActive = false;
-        SetActiveState(false);
-
-        if (indicatorPrefab == null)
-        {
-            Debug.LogError("Missing indicator prefab!");
-            yield break;
-        }
-
-        // Create and initialize indicator
-        activeIndicator = Instantiate(indicatorPrefab, transform.position, Quaternion.identity);
-        SpriteRenderer indicatorRenderer = activeIndicator.GetComponent<SpriteRenderer>();
-        
-        if (indicatorRenderer == null)
-        {
-            Debug.LogError("Indicator prefab missing SpriteRenderer!");
-            yield break;
-        }
-
-        // Start flicker effect
-        Coroutine flickerRoutine = StartCoroutine(FlickerEffect(indicatorRenderer));
-        
-        // Play warning sound
-        if (warningSound != null)
-        {
-            Debug.Log($"Playing warning sound: {warningSound.name}");
-            AudioSource.PlayClipAtPoint(warningSound, transform.position, 3.0f);
-        }
-        else
-        {
-            Debug.LogWarning("Warning sound is not assigned in the inspector!");
-        }
-
-        // Wait for spawn delay
-        yield return new WaitForSeconds(spawnDelay);
-
-        // Cleanup
-        StopCoroutine(flickerRoutine);
-        indicatorRenderer.enabled = true;
-        Destroy(activeIndicator);
-
-        // Activate black hole
-        if (activationSound != null)
-        {
-            Debug.Log($"Playing activation sound: {activationSound.name}");
-            AudioSource.PlayClipAtPoint(activationSound, transform.position);
-        }
-        else
-        {
-            Debug.LogWarning("Activation sound is not assigned in the inspector!");
-        }
-        SetActiveState(true);
-
-        // Start shrinking effect and wait for it to complete
-        yield return StartCoroutine(ShrinkOverTime(spawnUptime));
-        Destroy(gameObject);
-    }
-        
     private IEnumerator FlickerEffect(SpriteRenderer renderer)
     {
         while (true)

@@ -22,7 +22,7 @@ MonoBehaviour:
   canAttack: 1
   canSummon: 1
   attackRange: 4.74
-  attackCooldown: 1
+  attackCooldown: 5
   attackVariance: 0.2
   attackDamage: 10
   attackEffect: {fileID: 0}
