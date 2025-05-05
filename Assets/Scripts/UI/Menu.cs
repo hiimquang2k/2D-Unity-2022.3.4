@@ -17,12 +17,15 @@ public class MenuManager : MonoBehaviour
     public TMP_Dropdown resolutionDropdown;
     public Toggle fullscreenToggle;
 
+    [SerializeField] private PlayerData playerData;
+    [SerializeField] private Button continueButton;
     private Resolution[] resolutions;
 
     private void Start()
     {
         // Initialize settings with saved values
         InitializeSettings();
+        continueButton.interactable = playerData.saveState.hasSave;
     }
 
     public void OpenSettings()
@@ -126,6 +129,7 @@ public class MenuManager : MonoBehaviour
     // Your existing methods (StartGame, QuitGame, etc.)
     public void StartGame()
     {
+        playerData.ResetData();
         // Load your game scene
         SceneManager.LoadScene("GameScene");
     }
@@ -133,6 +137,11 @@ public class MenuManager : MonoBehaviour
     public void OpenOptions()
     {
         // Open options menu or panel
+    }
+
+    public void ContinueGame()
+    {
+        GameManager.Instance.LoadGame();
     }
 
     public void QuitGame()

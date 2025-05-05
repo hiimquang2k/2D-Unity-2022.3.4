@@ -7,33 +7,31 @@ public class Skeleton : Monster
     private Necromancer _summoner;
     private HealthSystem _healthSystem;
     [SerializeField] private bool _statesInitialized = false;
-private void Awake()
-{
-    _healthSystem = GetComponent<HealthSystem>();
-    if (_healthSystem != null)
-    {
-        _healthSystem.OnDeath += TriggerDeath;
-    }
-}
 
-private void OnDestroy()
-{
-    if (_healthSystem != null)
+    private void Awake()
     {
-        _healthSystem.OnDeath -= TriggerDeath;
+        _healthSystem = GetComponent<HealthSystem>();
+        if (_healthSystem != null)
+        {
+            _healthSystem.OnDeath += TriggerDeath;
+        }
+        InitializeStates();
     }
-}
+
+    private void OnDestroy()
+    {
+        if (_healthSystem != null)
+        {
+            _healthSystem.OnDeath -= TriggerDeath;
+        }
+    }
+
     protected override void InitializeStates()
     {
-            if (_statesInitialized) 
-    {
-        Debug.LogWarning("States already initialized for " + gameObject.name);
-        return;
-    }
+        if (_statesInitialized) return;
 
-    Debug.Log("Initializing states for " + gameObject.name);
-        stateMachine.AddState(MonsterStateType.Death, new PooledDeathState(this));
-        stateMachine.AddState(MonsterStateType.Idle, new IdleState(this, true));
+        stateMachine.AddState(MonsterStateType.Death, new DeathState(this));
+        stateMachine.AddState(MonsterStateType.Idle, new IdleState(this));
         stateMachine.AddState(MonsterStateType.Chase, new ChaseState(this, Data.decisionInterval));
         stateMachine.AddState(MonsterStateType.Attack, new SkeletonAttackState(this));
         
@@ -49,51 +47,28 @@ private void OnDestroy()
     {
         _summoner = summoner;
         ResetSkeleton();
+        stateMachine.SwitchState(MonsterStateType.Idle);
     }
+
     public void ResetSkeleton()
     {
-        // Reset health, colliders, etc.
         GetComponent<Collider2D>().enabled = true;
         GetComponent<DamageSystem>().SetDamageable(true);
         
-        // Reset visual
         SpriteRenderer sr = GetComponent<SpriteRenderer>();
         Color color = sr.color;
         color.a = 1f;
         sr.color = color;
     }
 
-private bool _isDying = false; // Add this flag
+    private bool _isDying = false;
 
-public void TriggerDeath()
-{
-    // Prevent multiple death triggers
-    if (_isDying) return;
-    _isDying = true;
-
-    // 1. First ensure states exist (MUST happen before any state switching)
-    if (!stateMachine.HasState(MonsterStateType.Death))
+    public void TriggerDeath()
     {
-        Debug.LogWarning("Death state missing! Force-initializing...");
-        InitializeStates();
+        if (_isDying) return;
+        _isDying = true;
+
+        OnDeath?.Invoke(this);
+        stateMachine.SwitchState(MonsterStateType.Death);
     }
-
-    // 2. Notify listeners
-    OnDeath?.Invoke(this);
-
-    // 3. Switch state (now guaranteed to exist)
-    stateMachine.SwitchState(MonsterStateType.Death);
-
-    // 4. Cleanup
-    OnDeath = null;
-}
-
-public void PoolInitialize()
-{
-    _isDying = false;
-    _statesInitialized = false; // Force re-init
-    InitializeStates();
-    ResetSkeleton();
-    stateMachine.SwitchState(MonsterStateType.Idle);
-}
 }

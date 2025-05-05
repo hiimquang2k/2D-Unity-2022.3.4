@@ -25,7 +25,7 @@ public class MobSpawner : MonoBehaviour
     private List<GameObject> activeMobs = new List<GameObject>();
     private float cooldownTimer;
     private Vector2 lastPlayerPosition;
-
+    private bool spawningEnabled = true;
     private void Start()
     {
         InitializeReferences();
@@ -54,11 +54,6 @@ public class MobSpawner : MonoBehaviour
             AttemptSpawn();
             cooldownTimer = spawnCooldown;
         }
-    }
-
-    private bool ShouldSpawn()
-    {
-        return activeMobs.Count < maxActiveMobs && cooldownTimer <= 0;
     }
 
     private void AttemptSpawn()
@@ -145,7 +140,15 @@ public class MobSpawner : MonoBehaviour
         if (!monster) return;
 
         monster.Target = player;
-        monster.stateMachine.SwitchState(MonsterStateType.Chase);
+        
+        // Ensure states are initialized before switching
+        if (monster is Necromancer necro)
+        {
+            necro.Initialize();
+        }
+        
+        // Now it's safe to switch to Idle state
+        monster.stateMachine.SwitchState(MonsterStateType.Idle);
     }
 
     private void ManageMobLifecycle()
@@ -203,6 +206,27 @@ public class MobSpawner : MonoBehaviour
         lastPlayerPosition = player.position;
     }
 
+    public void ToggleSpawning(bool enable)
+    {
+        spawningEnabled = enable;
+        if (!enable) ForceDespawnAllMobs();
+    }
+
+    private void ForceDespawnAllMobs()
+    {
+        foreach (GameObject mob in activeMobs.ToArray())
+        {
+            ReturnMobToPool(mob);
+        }
+    }
+
+    // Modify ShouldSpawn
+    private bool ShouldSpawn()
+    {
+        return spawningEnabled && 
+               activeMobs.Count < maxActiveMobs && 
+               cooldownTimer <= 0;
+    }
     private void OnDrawGizmosSelected()
     {
         if (!player) return;

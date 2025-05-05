@@ -157,11 +157,9 @@ public class PlayerCombat : MonoBehaviour
         DetectEnemies(attackStartPos, attackDirection, hitEnemies);
 
         bool hitAnyEnemy = ProcessHits(hitEnemies);
-
-        if (hitAnyEnemy)
-        {
-            ApplyHitEffects();
-        }
+        
+        // Always play hit effects, regardless of whether an enemy was hit
+        ApplyHitEffects();
     }
 
     private void DetectEnemies(Vector2 origin, Vector2 direction, HashSet<HealthSystem> enemies)

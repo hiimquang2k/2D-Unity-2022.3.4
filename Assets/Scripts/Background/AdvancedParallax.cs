@@ -12,6 +12,10 @@ public class NonOverlappingParallax : MonoBehaviour
         public bool infiniteVertical;
         public float scale = 1f;
 
+        [Header("Offset Settings")]
+        public float horizontalSpacing = 1f;
+        public Vector2 verticalOffset;
+
         [HideInInspector]
         public List<GameObject> instances = new List<GameObject>();
 
@@ -58,24 +62,26 @@ public class NonOverlappingParallax : MonoBehaviour
     {
         ParallaxLayer layer = layers[layerIndex];
         float viewportWidth = Camera.main.orthographicSize * 2 * Camera.main.aspect;
-        int requiredInstances = Mathf.CeilToInt(viewportWidth / layer.exactWidth) + 2;
+        int requiredInstances = Mathf.CeilToInt(viewportWidth / (layer.exactWidth * layer.horizontalSpacing)) + 2;
 
         for (int i = 1; i <= requiredInstances / 2; i++)
         {
+            // Right instance
             GameObject rightInstance = Instantiate(layer.layerObject, transform);
             rightInstance.transform.localScale = Vector3.one * layer.scale;
             rightInstance.transform.position = new Vector3(
-                layer.layerObject.transform.position.x + (layer.exactWidth * i),
-                layer.layerObject.transform.position.y,
+                layer.layerObject.transform.position.x + (layer.exactWidth * layer.horizontalSpacing * i),
+                layer.layerObject.transform.position.y + Random.Range(layer.verticalOffset.x, layer.verticalOffset.y),
                 layer.layerObject.transform.position.z
             );
             layer.instances.Add(rightInstance);
 
+            // Left instance
             GameObject leftInstance = Instantiate(layer.layerObject, transform);
             leftInstance.transform.localScale = Vector3.one * layer.scale;
             leftInstance.transform.position = new Vector3(
-                layer.layerObject.transform.position.x - (layer.exactWidth * i),
-                layer.layerObject.transform.position.y,
+                layer.layerObject.transform.position.x - (layer.exactWidth * layer.horizontalSpacing * i),
+                layer.layerObject.transform.position.y + Random.Range(layer.verticalOffset.x, layer.verticalOffset.y),
                 layer.layerObject.transform.position.z
             );
             layer.instances.Add(leftInstance);
@@ -144,8 +150,8 @@ public class NonOverlappingParallax : MonoBehaviour
         if (rightmost.transform.position.x + (layer.exactWidth / 2) < leftScreenEdge)
         {
             rightmost.transform.position = new Vector3(
-                leftmost.transform.position.x + layer.exactWidth,
-                rightmost.transform.position.y,
+                leftmost.transform.position.x + (layer.exactWidth * layer.horizontalSpacing),
+                rightmost.transform.position.y + Random.Range(layer.verticalOffset.x, layer.verticalOffset.y),
                 rightmost.transform.position.z
             );
         }
@@ -153,8 +159,8 @@ public class NonOverlappingParallax : MonoBehaviour
         if (leftmost.transform.position.x - (layer.exactWidth / 2) > rightScreenEdge)
         {
             leftmost.transform.position = new Vector3(
-                rightmost.transform.position.x - layer.exactWidth,
-                leftmost.transform.position.y,
+                rightmost.transform.position.x - (layer.exactWidth * layer.horizontalSpacing),
+                leftmost.transform.position.y + Random.Range(layer.verticalOffset.x, layer.verticalOffset.y),
                 leftmost.transform.position.z
             );
         }
@@ -198,35 +204,6 @@ public class NonOverlappingParallax : MonoBehaviour
             Gizmos.DrawLine(topRight, bottomRight);
             Gizmos.DrawLine(bottomRight, bottomLeft);
             Gizmos.DrawLine(bottomLeft, topLeft);
-        }
-    }
-
-    // ======== NEW DESTRUCTION METHOD ========
-    public void DestroyInArea(float leftBound, float rightBound, float destructionChance)
-    {
-        foreach (ParallaxLayer layer in layers)
-        {
-            List<GameObject> toRemove = new List<GameObject>();
-            
-            foreach (GameObject instance in layer.instances)
-            {
-                if (instance == layer.layerObject) continue;
-
-                float xPos = instance.transform.position.x;
-                if (xPos >= leftBound && xPos <= rightBound)
-                {
-                    if (Random.value < destructionChance)
-                    {
-                        toRemove.Add(instance);
-                    }
-                }
-            }
-
-            foreach (GameObject instance in toRemove)
-            {
-                layer.instances.Remove(instance);
-                Destroy(instance);
-            }
         }
     }
 }

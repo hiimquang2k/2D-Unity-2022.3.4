@@ -46,4 +46,4 @@ MonoBehaviour:
   skeletonLifetime: 20
   skeletonPrefab: {fileID: 3475432581842552240, guid: 9b5a8265a7bc2b045b4335a3e07f9d4f, type: 3}
   summonParticles: {fileID: 0}
-  summonSound: {fileID: 0}
+  summonSound: {fileID: 8300000, guid: 698b0a6581ee0d64cadd409052915522, type: 3}

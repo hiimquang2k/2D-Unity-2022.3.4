@@ -108,9 +108,12 @@ private GameObject CreateStatusText(GameObject target, DamageType type)
 
     public void RemoveStatus(GameObject target)
     {
+        // Check if target is null or destroyed before proceeding
+        if (!IsValidTarget(target)) return;
+
         if (!activeStatuses.TryGetValue(target, out ActiveStatus status)) return;
 
-        // Fade out text before removal
+        // Fade out text
         if (status.statusText != null)
         {
             TextMeshPro text = status.statusText.GetComponent<TextMeshPro>();
@@ -120,19 +123,51 @@ private GameObject CreateStatusText(GameObject target, DamageType type)
             }));
         }
 
-        // Stop and remove particles
+        // Stop particles
         if (status.effectParticles != null)
         {
             status.effectParticles.Stop();
             Destroy(status.effectParticles.gameObject, status.effectParticles.main.duration);
         }
 
-        // Restore original tag
-        target.tag = status.originalTag;
+        // Restore tag only if target is still valid
+        if (IsValidTarget(target))
+        {
+            target.tag = status.originalTag;
+        }
 
-        // Clean up
-        if (status.removalRoutine != null) StopCoroutine(status.removalRoutine);
+        // Cleanup coroutine and dictionary entry
+        if (status.removalRoutine != null) 
+            StopCoroutine(status.removalRoutine);
+        
         activeStatuses.Remove(target);
+    }
+
+    // Helper method to check if GameObject is valid
+    private bool IsValidTarget(GameObject target)
+    {
+        return target != null && target;
+    }
+
+    // Add cleanup method to remove dead entries
+    private void Update()
+    {
+        CleanupDestroyedStatuses();
+    }
+
+    private void CleanupDestroyedStatuses()
+    {
+        List<GameObject> deadKeys = new List<GameObject>();
+        foreach (var key in activeStatuses.Keys)
+        {
+            if (!IsValidTarget(key))
+                deadKeys.Add(key);
+        }
+
+        foreach (var key in deadKeys)
+        {
+            activeStatuses.Remove(key);
+        }
     }
 
     private IEnumerator FadeText(TextMeshPro text, float startAlpha, float endAlpha, float duration, System.Action onComplete = null)

@@ -68,13 +68,22 @@ public class PlayerData : ScriptableObject
     [Header("Direction")]
     public Vector2 initialDirection = Vector2.right;
 
+    public SaveState saveState = new SaveState();
+
+    // Existing code...
     [System.Serializable]
-    public class SaveData
+    public class SaveState
     {
-        public int currentHealth;
-        public Vector3 playerPosition;
+        public bool hasSave = false;
+        public int savedHealth = 100;
+        public Vector3 savedPosition = Vector3.zero;
+        public string savedScene = "MainScene";
     }
 
+    public void ResetData()
+    {
+        saveState = new SaveState();
+    }
     private void OnValidate()
     {
         // Optimize calculations by caching gravity

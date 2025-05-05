@@ -1,37 +1,39 @@
 using UnityEngine;
-using UnityEngine.Tilemaps;
 
 public class Meteor : MonoBehaviour
 {
-    [Header("Impact Settings")]
-    [SerializeField] private GameObject impactEffect;
-    [SerializeField] private LayerMask collisionLayers;
+    public float fallSpeed = 5f;
+    public int damage = 10;
+    public float impactRadius = 1f;
+    public LayerMask groundLayer;
 
-    private float speed;
-    private int damage;
-    private float impactRadius;
-    private float destructionWidth;
-    private float destructionChance;
-    private Tilemap targetTilemap;
-    private NonOverlappingParallax parallaxSystem;
-
-    public void Initialize(float fallSpeed, int damage, float radius, float width, 
-                         float chance, Tilemap tilemap, NonOverlappingParallax parallax)
+    private Rigidbody2D rb;
+    private float destroyTimer = 3f;
+    private TrailRenderer trail;
+    void Start()
+{
+    trail = GetComponent<TrailRenderer>();
+    // Optional: Randomize trail appearance
+    trail.time = Random.Range(0.4f, 0.7f);
+    trail.startWidth = 0.5f;
+    trail.endWidth = 0f;
+}
+    public void Initialize(float speed, int dmg, float radius)
     {
-        speed = fallSpeed;
-        this.damage = damage;
+        fallSpeed = speed;
+        damage = dmg;
         impactRadius = radius;
-        destructionWidth = width;
-        destructionChance = chance;
-        targetTilemap = tilemap;
-        parallaxSystem = parallax;
+        rb = GetComponent<Rigidbody2D>();
+        rb.velocity = Vector2.down * fallSpeed;
     }
 
     private void Update()
     {
-        transform.Translate(Vector2.down * speed * Time.deltaTime);
+        // Decrease timer
+        destroyTimer -= Time.deltaTime;
         
-        if (transform.position.y < -10f)
+        // Destroy if timer runs out
+        if (destroyTimer <= 0f)
         {
             Destroy(gameObject);
         }
@@ -39,83 +41,38 @@ public class Meteor : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D collision)
     {
-        if ((collisionLayers.value & (1 << collision.gameObject.layer)) != 0)
+        // Check if we hit the ground
+        if(((1 << collision.gameObject.layer) & groundLayer) != 0)
         {
-            Impact();
+            // Store the ground position
+            Vector2 groundPosition = collision.ClosestPoint(transform.position);
+            
+            // Move meteor to ground position
+            transform.position = new Vector3(groundPosition.x, groundPosition.y, transform.position.z);
+            
+            // Apply area damage
+            ApplyAreaDamage();
+            
+            // Destroy meteor
+            Destroy(gameObject);
         }
     }
 
-    private void Impact()
-    {
-        ApplyDamage();
-        DestroyEnvironment();
-        SpawnEffects();
-        Destroy(gameObject);
-    }
-
-    private void ApplyDamage()
+    private void ApplyAreaDamage()
     {
         Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, impactRadius);
-        foreach (Collider2D hit in hits)
+        foreach(Collider2D hit in hits)
         {
-            if (hit.TryGetComponent<DamageSystem>(out var damageSystem))
+            if(hit.CompareTag("Player"))
             {
-                damageSystem.ApplyDamage(
-                    damage,
-                    DamageType.Environmental,
-                    transform.position
-                );
+                hit.GetComponent<DamageSystem>()?.ApplyDamage(damage, DamageType.Environmental, transform.position);
             }
         }
     }
 
-    private void DestroyEnvironment()
+    private void OnDrawGizmosSelected()
     {
-        DestroyTiles();
-        DestroyBackground();
-    }
-
-    private void DestroyTiles()
-    {
-        if (targetTilemap == null) return;
-
-        Vector3Int cellPosition = targetTilemap.WorldToCell(transform.position);
-        int radius = Mathf.CeilToInt(impactRadius);
-        int width = Mathf.CeilToInt(destructionWidth);
-
-        for (int x = -width; x <= width; x++)
-        {
-            for (int y = -radius; y <= radius; y++)
-            {
-                if (Random.value < destructionChance)
-                {
-                    Vector3Int tilePos = new Vector3Int(
-                        cellPosition.x + x,
-                        cellPosition.y + y,
-                        cellPosition.z
-                    );
-                    targetTilemap.SetTile(tilePos, null);
-                }
-            }
-        }
-    }
-
-    private void DestroyBackground()
-    {
-        if (parallaxSystem == null) return;
-
-        float centerX = transform.position.x;
-        float left = centerX - destructionWidth / 2;
-        float right = centerX + destructionWidth / 2;
-        
-        parallaxSystem.DestroyInArea(left, right, destructionChance);
-    }
-
-    private void SpawnEffects()
-    {
-        if (impactEffect != null)
-        {
-            Instantiate(impactEffect, transform.position, Quaternion.identity);
-        }
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireSphere(transform.position, impactRadius);
     }
 }

@@ -23,17 +23,13 @@ public class Necromancer : Monster
         if (ShouldSummon())
         {
             stateMachine.SwitchState(MonsterStateType.Summon);
-            //Debug.Log("Attempting to summon skeleton"); // Debug line
         }
     }
 
     private bool ShouldSummon()
     {
-        bool canSummon = _currentSkeletons < ((NecromancerData)Data).maxSkeletons &&
-                        Time.time > _lastSummonTime + ((NecromancerData)Data).summonCooldown;
-
-        //Debug.Log($"Can summon: {canSummon} | Current: {_currentSkeletons} | Last summon: {Time.time - _lastSummonTime}s ago");
-        return canSummon;
+        return _currentSkeletons < ((NecromancerData)Data).maxSkeletons &&
+               Time.time > _lastSummonTime + ((NecromancerData)Data).summonCooldown;
     }
 
     // Called via Animation Event
@@ -45,22 +41,23 @@ public class Necromancer : Monster
             return;
         }
 
-        Skeleton skeleton = SkeletonPool.Instance.GetFromPool(
+        // Instantiate new skeleton directly
+        GameObject skeletonObj = GameObject.Instantiate(
+            ((NecromancerData)Data).skeletonPrefab,
             (Vector2)transform.position + UnityEngine.Random.insideUnitCircle * 2f,
-            Quaternion.identity);
+            Quaternion.identity
+        );
 
+        Skeleton skeleton = skeletonObj.GetComponent<Skeleton>();
         if (skeleton == null)
         {
-            Debug.LogError("Failed to get skeleton from pool!");
+            Debug.LogError("Skeleton prefab is missing Skeleton component!");
             return;
         }
 
         skeleton.Initialize(this);
 
-        // Verify event subscription
-        Debug.Log($"Subscribing to skeleton death (Current: {_currentSkeletons})");
         skeleton.OnDeath += OnSkeletonDeath;
-
         _currentSkeletons++;
         _lastSummonTime = Time.time;
     }
@@ -70,9 +67,11 @@ public class Necromancer : Monster
         if (skeleton == null) return;
 
         _currentSkeletons--;
-        Debug.Log($"Skeleton death confirmed! Current: {_currentSkeletons}");
-
-        // Cleanup
         skeleton.OnDeath -= OnSkeletonDeath;
+    }
+    public void Initialize()
+    {
+        InitializeStates();
+        stateMachine.SwitchState(MonsterStateType.Idle);
     }
 }

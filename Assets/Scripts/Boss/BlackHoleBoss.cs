@@ -14,84 +14,205 @@ public class BlackHoleBoss : MonoBehaviour
     [SerializeField] private int baseMeteorDamage = 10;
     [SerializeField] private float baseMeteorImpactRadius = 1f;
 
-    [Header("Destruction Settings")]
-    [SerializeField] private Tilemap destructibleTilemap;
-    [SerializeField] private NonOverlappingParallax parallaxSystem;
-    [SerializeField] private float[] phaseThresholds = { 0.66f, 0.33f, 0f };
-    [SerializeField] private float[] destructionWidths = { 0.33f, 0.66f, 1f };
+    [Header("Black Hole Spawn Settings")]
+    [SerializeField] private GameObject blackHolePrefab;
+    [SerializeField] private float minSpawnInterval = 10f;
+    [SerializeField] private float maxSpawnInterval = 15f;
+    [SerializeField] private float spawnDistanceFromBoss = 5f;
     
-    private int currentPhase = 0;
-    private Camera mainCamera;
+    [Header("Teleport Settings")]
+    [SerializeField] private float teleportCooldown = 8f;
+    [SerializeField] private float minTeleportDistance = 5f;
+    [SerializeField] private float maxTeleportDistance = 10f;
+
+    [Header("Attack Settings")]
+    [SerializeField] private float attackCooldown = 10f;
+    [SerializeField] private float attackImpactRadius = 3f;
+    [SerializeField] private int attackDamage = 20;
+    [SerializeField] private LayerMask playerLayer;
+    [Header("Audio")]
+    [SerializeField] private AudioClip attackAudio;
+    private AudioSource audioSource;
+
+    [Header("Animations")]
+    [SerializeField] private Animator bossAnimator;
+    [SerializeField] private string spawnAnimTrigger = "Cast";
+    [SerializeField] private string preTeleportTrigger = "PreTeleport";
+    [SerializeField] private string teleportTrigger = "Teleport";
+    [SerializeField] private string attackTrigger = "Attack";
+
+    private ImprovedCameraShake cameraShake;
+    private Transform playerTarget;
+    private bool isActionInProgress;
+    private Vector3 originalPosition;
+    private bool attackImpactTriggered;
 
     private void Start()
     {
-        mainCamera = Camera.main;
-        healthSystem.OnHealthChanged += HandleHealthChanged;
-    }
-
-    private void HandleHealthChanged(int current, int max)
-    {
-        CheckPhaseTransition((float)current / max);
-    }
-
-    private void CheckPhaseTransition(float healthPercent)
-    {
-        for (int i = currentPhase; i < phaseThresholds.Length; i++)
+        cameraShake = Camera.main.GetComponent<ImprovedCameraShake>();
+        playerTarget = GameObject.FindGameObjectWithTag("Player").transform;
+        audioSource = GetComponent<AudioSource>();
+        if (audioSource == null)
         {
-            if (healthPercent <= phaseThresholds[i])
+            audioSource = gameObject.AddComponent<AudioSource>();
+        }
+        
+        StartCoroutine(BlackHoleSpawnCycle());
+        StartCoroutine(TeleportRoutine());
+        StartCoroutine(AttackRoutine());
+        StartCoroutine(BackgroundMeteorShower());
+    }
+
+    private IEnumerator BackgroundMeteorShower()
+    {
+        while(true)
+        {
+            yield return new WaitForSeconds(Random.Range(3f, 5f));
+            SpawnSingleMeteor();
+        }
+    }
+
+    private void SpawnSingleMeteor()
+    {
+        Vector2 spawnPos = (Vector2)playerTarget.position + Random.insideUnitCircle * 10f;
+        spawnPos.y += meteorSpawnHeight;
+        
+        GameObject meteor = Instantiate(meteorPrefab, spawnPos, Quaternion.identity);
+        Meteor meteorScript = meteor.GetComponent<Meteor>();
+        meteorScript.Initialize(baseMeteorFallSpeed, baseMeteorDamage, baseMeteorImpactRadius);
+    }
+
+    private IEnumerator AttackRoutine()
+    {
+        while(true)
+        {
+            yield return new WaitForSeconds(attackCooldown);
+            if(!isActionInProgress) StartCoroutine(PerformAttack());
+        }
+    }
+
+    private IEnumerator PerformAttack()
+    {
+        isActionInProgress = true;
+        Vector3 originalPosition = transform.position;
+
+        // 1. Pre-Teleport at original position
+        FacePlayerDirection();
+        bossAnimator.SetTrigger(preTeleportTrigger);
+        yield return new WaitForSeconds(1.1f); // Match PreTeleport animation length
+
+        // 2. Instant move to player position
+        Vector3 attackPosition = playerTarget.position;
+        transform.position = attackPosition;
+
+        // 3. Play AttackAnim with jump-down animation
+        bossAnimator.SetTrigger(attackTrigger);
+        attackImpactTriggered = false;
+        
+        yield return new WaitForSeconds(1.25f);
+        audioSource.PlayOneShot(attackAudio);
+        // 4. Wait for attack impact event from animation
+        yield return new WaitUntil(() => attackImpactTriggered);
+
+        isActionInProgress = false;
+    }
+
+    // Animation Event called during strike frame
+    public void OnAttackImpact()
+    {
+        ApplyAoEDamage();
+        attackImpactTriggered = true;
+        cameraShake?.ShakeCamera(2f);
+    }
+
+    private void ApplyAoEDamage()
+    {
+        Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, attackImpactRadius, playerLayer);
+        foreach(Collider2D hit in hits)
+        {
+            if(hit.CompareTag("Player"))
             {
-                currentPhase = i + 1;
-                StartCoroutine(TriggerDestructionWave());
-                break;
+                hit.GetComponent<DamageSystem>()?.ApplyDamage(attackDamage, DamageType.Environmental, transform.position);
             }
         }
     }
 
-    private IEnumerator TriggerDestructionWave()
+    private void FacePlayerDirection()
     {
-        int meteorsToSpawn = 5 + (currentPhase * 3);
-        float delayBetween = 0.2f;
-        
-        for (int i = 0; i < meteorsToSpawn; i++)
+        Vector3 scale = transform.localScale;
+        scale.x = Mathf.Abs(scale.x) * Mathf.Sign(playerTarget.position.x - transform.position.x);
+        transform.localScale = scale;
+    }
+
+    private IEnumerator TeleportRoutine()
+    {
+        while (true)
         {
-            SpawnDestructionMeteor();
-            yield return new WaitForSeconds(delayBetween);
+            yield return new WaitForSeconds(teleportCooldown);
+            if (!isActionInProgress) StartCoroutine(PerformTeleport());
         }
     }
 
-    private void SpawnDestructionMeteor()
+    private IEnumerator PerformTeleport()
     {
-        if (meteorPrefab == null) return;
+        isActionInProgress = true;
+        originalPosition = transform.position;
 
-        Vector2 viewportMin = mainCamera.ViewportToWorldPoint(Vector2.zero);
-        Vector2 viewportMax = mainCamera.ViewportToWorldPoint(Vector2.one);
-        
-        Vector2 spawnPos = new Vector2(
-            Random.Range(viewportMin.x, viewportMax.x),
-            viewportMax.y + meteorSpawnHeight
-        );
+        // Phase 1: Pre-teleport animation
+        bossAnimator.SetTrigger(preTeleportTrigger);
+        yield return new WaitForSeconds(0.5f);
 
-        GameObject meteor = Instantiate(meteorPrefab, spawnPos, Quaternion.identity);
-        Meteor meteorScript = meteor.GetComponent<Meteor>();
-        
-        if (meteorScript != null)
+        // Phase 2: Calculate escape position
+        Vector2 escapeDirection = (originalPosition - playerTarget.position).normalized;
+        Vector2 teleportPosition = originalPosition + 
+            (Vector3)(escapeDirection * Random.Range(minTeleportDistance, maxTeleportDistance));
+
+        // Phase 3: Teleport animation at new position
+        transform.position = teleportPosition;
+        bossAnimator.SetTrigger(teleportTrigger);
+        yield return new WaitForSeconds(0.75f);
+
+        isActionInProgress = false;
+    }
+
+    private IEnumerator BlackHoleSpawnCycle()
+    {
+        while (true)
         {
-            float phaseMultiplier = currentPhase + 1;
-            float width = (viewportMax.x - viewportMin.x) * destructionWidths[currentPhase];
+            yield return new WaitForSeconds(Random.Range(minSpawnInterval, maxSpawnInterval));
             
-            meteorScript.Initialize(
-    fallSpeed: baseMeteorFallSpeed * phaseMultiplier,
-    damage: Mathf.RoundToInt(baseMeteorDamage * phaseMultiplier),
-    radius: baseMeteorImpactRadius * phaseMultiplier, // Changed parameter name
-    width: width,
-    chance: 0.7f, // Changed parameter name
-    tilemap: destructibleTilemap, // Changed parameter name
-    parallax: parallaxSystem // Changed parameter name
-);
+            // Trigger spawn animation
+            if (bossAnimator != null)
+            {
+                bossAnimator.SetTrigger(spawnAnimTrigger);
+            }
 
+            // Wait for animation to reach casting point
+            yield return new WaitForSeconds(0.5f);
+
+            SpawnBlackHole();
         }
     }
 
+    private void SpawnBlackHole()
+    {
+        if (blackHolePrefab == null) return;
+
+        Vector2 spawnPos = GetSpawnPositionAroundPlayer();
+        Instantiate(blackHolePrefab, spawnPos, Quaternion.identity);
+    }
+
+    private Vector2 GetSpawnPositionAroundPlayer()
+    {
+        Vector2 randomDirection = Random.insideUnitCircle.normalized;
+        return (Vector2)playerTarget.position + (randomDirection * spawnDistanceFromBoss);
+    }
+
+    // Add this to handle animation events if needed
+    public void OnCastAnimationComplete()
+    {
+        // Additional logic if needed
+    }
     public void ProcessIncomingDamage(int rawDamage, DamageType type)
     {
         int finalDamage = CalculateDamage(rawDamage, type);

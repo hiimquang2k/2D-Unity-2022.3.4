@@ -37,6 +37,6 @@ MonoBehaviour:
   attackTrigger: Attack
   summonTrigger: Summon
   deathTrigger: Death
-  attackSound: {fileID: 0}
-  deathSound: {fileID: 0}
+  attackSound: {fileID: 8300000, guid: c071c823ad57e884b91a3108f515c940, type: 3}
+  deathSound: {fileID: 8300000, guid: ad1dfc23d7dd444478fdd9bbd0bb5c22, type: 3}
   deathEffect: {fileID: 0}
