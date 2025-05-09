@@ -1,50 +1,64 @@
 using UnityEngine;
+
 public class ChaseState : IMonsterState
 {
-    // Public property with private backing field
     public float UpdateInterval { get; set; }
-    
     private Monster _monster;
-    private float _lastUpdateTime;
-
+    
     public ChaseState(Monster monster, float updateInterval = 0.5f)
     {
         _monster = monster;
-        UpdateInterval = updateInterval; // Set through constructor
+        UpdateInterval = updateInterval;
     }
 
     public void Enter()
     {
         _monster.Animator.SetBool("IsChasing", true);
-        GameObject Player = GameObject.FindGameObjectWithTag("Player");
-        _monster.Target = Player.transform;
+        _monster.Target = GameObject.FindGameObjectWithTag("Player")?.transform;
     }
     
     public void Update()
     {
-        if (_monster.Target == null) // If target lost
+        if (_monster.Target == null)
         {
+            Debug.Log("Target not found");
             _monster.stateMachine.SwitchState(MonsterStateType.Idle);
             return;
         }
 
-        // Calculate distance to target
-        float distance = Vector2.Distance(_monster.transform.position, _monster.Target.position);
+        // Horizontal distance check
+        float horizontalDistance = Mathf.Abs(_monster.Target.position.x - _monster.transform.position.x);
+        float verticalDifference = Mathf.Abs(_monster.Target.position.y - _monster.transform.position.y);
 
-        // Transition to attack if in range
-        if (distance <= _monster.Data.attackRange && _monster.Data.canAttack)
+        // Check vertical proximity (ensure MonsterData has this field)
+        if (verticalDifference > _monster.Data.maxVerticalAggro)
+        {
+            _monster.stateMachine.SwitchState(MonsterStateType.Idle);
+            Debug.Log("Vertical difference too large");
+            return;
+        }
+
+        // Attack check
+        if (horizontalDistance <= _monster.Data.attackRange && 
+            _monster.Data.canAttack && 
+            Time.time - _monster.lastAttackTime >= _monster.currentAttackCooldown)
         {
             _monster.stateMachine.SwitchState(MonsterStateType.Attack);
             return;
         }
 
-        // Continue chasing logic
-        if (Time.time - _lastUpdateTime > UpdateInterval)
+        if (!_monster.IsGrounded() || _monster.HasObstacleAhead())
         {
-            Vector2 direction = (_monster.Target.position - _monster.transform.position).normalized;
-            _monster.Move(direction * _monster.Data.chaseSpeed);
-            _lastUpdateTime = Time.time;
+            _monster.stateMachine.SwitchState(MonsterStateType.Idle);
+            Debug.Log("Not grounded or obstacle ahead");
+            return;
         }
+        // Movement and direction update
+        Vector2 direction = (_monster.Target.position - _monster.transform.position).normalized;
+        _monster.Move(new Vector2(direction.x * _monster.Data.chaseSpeed, 0));
+        
+        // Use DirectionManager's existing method
+        _monster.directionManager.UpdateDirection(direction.x, 0);
     }
 
     public void Exit()

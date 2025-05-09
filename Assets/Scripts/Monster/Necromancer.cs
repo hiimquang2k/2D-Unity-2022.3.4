@@ -3,8 +3,18 @@ using System;
 
 public class Necromancer : Monster
 {
+    public event Action<Necromancer> OnDeath;
     private int _currentSkeletons;
     private float _lastSummonTime;
+    private HealthSystem _healthSystem;
+    private void Awake()
+    {
+        _healthSystem = GetComponent<HealthSystem>();
+        if (_healthSystem != null)
+        {
+            _healthSystem.OnDeath += TriggerDeath;
+        }
+    }
 
     protected override void InitializeStates()
     {
@@ -13,6 +23,7 @@ public class Necromancer : Monster
         stateMachine.AddState(MonsterStateType.Summon, new SummonState(this));
         stateMachine.AddState(MonsterStateType.Idle, new IdleState(this));
         stateMachine.AddState(MonsterStateType.Patrol, new PatrolState(this));
+        stateMachine.AddState(MonsterStateType.Death, new DeathState(this));
         stateMachine.SwitchState(MonsterStateType.Idle);
     }
 
@@ -73,5 +84,21 @@ public class Necromancer : Monster
     {
         InitializeStates();
         stateMachine.SwitchState(MonsterStateType.Idle);
+    }
+    private void OnDestroy()
+    {
+        if (_healthSystem != null)
+        {
+            _healthSystem.OnDeath -= TriggerDeath;
+        }
+    }
+    private bool _isDying = false;
+    public void TriggerDeath()
+    {
+        if (_isDying) return;
+        _isDying = true;
+
+        OnDeath?.Invoke(this);
+        stateMachine.SwitchState(MonsterStateType.Death);
     }
 }

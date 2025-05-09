@@ -3,8 +3,7 @@ using UnityEngine;
 public class AttackState : IMonsterState
 {
     protected Monster _monster;
-    protected float _cooldownTimer;
-    protected bool _attackExecuted;
+    private bool _attackExecuted;
     
     // Animation hashes
     private static readonly int AttackTrigger = Animator.StringToHash("Attack");
@@ -17,7 +16,6 @@ public class AttackState : IMonsterState
 
     public virtual void Enter()
     {
-        _cooldownTimer = GetRandomCooldown();
         _attackExecuted = false;
         
         // Trigger attack animation
@@ -25,65 +23,48 @@ public class AttackState : IMonsterState
         _monster.Animator.SetInteger(AttackIndex, attackVariant);
         _monster.Animator.SetTrigger(AttackTrigger);
         
-        // Face target if exists
+        // Face target
+        Vector2 direction;
         if (_monster.Target != null)
         {
-            Vector2 direction = (_monster.Target.position - _monster.transform.position).normalized;
-            _monster.directionManager.UpdateDirection(direction.x, direction.y);
+            direction = (_monster.Target.position - _monster.transform.position).normalized;
+            _monster.directionManager.SetInitialDirection(direction);
         }
+        else
+        {
+            // Fallback to current facing direction if no target
+            direction = _monster.directionManager.IsFacingRight ? Vector2.right : Vector2.left;
+        }
+        _monster.directionManager.SetInitialDirection(direction);
     }
 
-    public virtual void Update()
-    {
-        if (!_attackExecuted && IsAttackFrame())
-        {
-            ExecuteAttack();
-            _attackExecuted = true;
-        }
-
-        _cooldownTimer -= Time.deltaTime;
-        if (_cooldownTimer <= 0)
-        {
-            _monster.stateMachine.SwitchState(MonsterStateType.Chase);
-        }
-    }
+    public virtual void Update() { } // Empty now
 
     public virtual void Exit()
     {
         _monster.Animator.ResetTrigger(AttackTrigger);
     }
 
-    protected virtual float GetRandomCooldown()
+    // Called by animation event
+    public virtual void ExecuteAttack()
     {
-        return _monster.Data.attackCooldown * 
-               Random.Range(1f - _monster.Data.attackVariance, 
-                           1f + _monster.Data.attackVariance);
-    }
+        if (_attackExecuted) return;
+        _attackExecuted = true;
 
-    protected virtual int SelectAttackVariant()
-    {
-        // Default: Single attack animation (override for multi-attack monsters)
-        return 1;
-    }
-
-    protected virtual bool IsAttackFrame()
-    {
-        // Check animation progress or use Animation Events
-        AnimatorStateInfo stateInfo = _monster.Animator.GetCurrentAnimatorStateInfo(0);
-        return stateInfo.normalizedTime >= 0.5f && stateInfo.IsTag("Attack");
-    }
-
-    protected virtual void ExecuteAttack()
-    {
         Vector2 attackOrigin = _monster.transform.position;
         Vector2 attackDirection = _monster.Target != null 
             ? (_monster.Target.position - _monster.transform.position).normalized
             : _monster.transform.right;
 
-        // Detect targets in attack range
-        Collider2D[] hits = Physics2D.OverlapCircleAll(
+        // Platformer-friendly box overlap
+        Vector2 attackSize = new Vector2(
+            _monster.Data.attackRange, 
+            _monster.Data.attackHeight // Add this to MonsterData
+        );
+        Collider2D[] hits = Physics2D.OverlapBoxAll(
             attackOrigin + attackDirection * _monster.Data.attackRange * 0.5f,
-            _monster.Data.attackRange
+            attackSize,
+            0
         );
 
         foreach (Collider2D hit in hits)
@@ -99,23 +80,35 @@ public class AttackState : IMonsterState
         }
 
         SpawnAttackEffects(attackOrigin, attackDirection);
+        
+        // Track cooldown in Monster
+        _monster.lastAttackTime = Time.time;
+        _monster.currentAttackCooldown = GetRandomCooldown();
     }
 
-    protected virtual DamageType GetDamageType()
+    // Called by animation event at the end
+    public virtual void EndAttack()
     {
-        // Default physical damage (override for elemental attacks)
-        return DamageType.Physical;
+        _monster.stateMachine.SwitchState(MonsterStateType.Chase);
     }
+
+    protected virtual float GetRandomCooldown()
+    {
+        return _monster.Data.attackCooldown * 
+               Random.Range(1f - _monster.Data.attackVariance, 1f + _monster.Data.attackVariance);
+    }
+
+    protected virtual int SelectAttackVariant() => 1;
+
+    protected virtual DamageType GetDamageType() => DamageType.Physical;
 
     protected virtual void SpawnAttackEffects(Vector2 position, Vector2 direction)
     {
         if (_monster.Data.attackEffect != null)
-        {
             Object.Instantiate(
                 _monster.Data.attackEffect,
                 position,
                 Quaternion.LookRotation(Vector3.forward, direction)
             );
-        }
     }
 }

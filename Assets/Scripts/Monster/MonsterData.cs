@@ -19,6 +19,7 @@ public class MonsterData : ScriptableObject
     public bool canSummon = false;
 
     [Header("Combat Settings")]
+    [Range(0.1f, 5f)] public float attackHeight = 1f; 
     [Range(0.5f, 10f)] public float attackRange = 1.5f;
     [Range(0.1f, 5f)] public float attackCooldown = 1f;
     [Range(0f, 1f)] public float attackVariance = 0.2f; // NEW: Cooldown randomness
@@ -30,6 +31,8 @@ public class MonsterData : ScriptableObject
     [Range(1f, 20f)] public float aggroRange = 5f;
     [Range(0.1f, 5f)] public float decisionInterval = 0.3f;
     [Range(1f, 10f)] public float patrolRadius = 5f;
+    [Range(1f, 5f)] public float maxVerticalAggro = 1.5f;
+    [Range(0.1f, 5f)] public float groundCheckDistance = 0.3f;
 
     [Header("Visual Settings")]
     public RuntimeAnimatorController animatorController;

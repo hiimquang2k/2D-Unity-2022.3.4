@@ -1,5 +1,5 @@
 using UnityEngine;
-
+using System.Collections;
 public abstract class Monster : MonoBehaviour
 {
     [Header("References")]
@@ -7,15 +7,20 @@ public abstract class Monster : MonoBehaviour
     public Transform Target;
     public Animator Animator;
     public Rigidbody2D Rb;
+    public HealthBarSystem healthBar;
     [Header("Direction")]
     [SerializeField] private DirectionManager _directionManager;
+
     [Header("Ground Settings")]
-    [SerializeField] private LayerMask groundLayer;
     [SerializeField] private float groundCheckDistance = 0.1f;
     [SerializeField] private Transform groundCheckPoint;
-
+    
+    [Header("Combat")]
+    public float lastAttackTime;
+    public float currentAttackCooldown;
+    public LayerMask groundLayer;
     public StateMachine stateMachine = new();
-
+    public string currentState;
     // Public property with getter that auto-adds component
     public DirectionManager directionManager
     {
@@ -39,7 +44,14 @@ public abstract class Monster : MonoBehaviour
     {
         // Force initialization of direction manager
         var dm = directionManager; // This will auto-add if missing
-
+        var healthSystem = GetComponent<HealthSystem>();
+        if (healthSystem != null)
+        {
+            healthSystem.SetMaxHealth(Data.maxHealth);
+            healthSystem.Initialize();
+        }
+        var healthBar = GetComponentInChildren<HealthBarSystem>();
+        healthBar.Initialize();
         InitializeStates();
     }
 
@@ -95,6 +107,7 @@ public abstract class Monster : MonoBehaviour
             Vector2 direction = (Target.position - transform.position).normalized;
             directionManager.UpdateDirection(direction.x, direction.y);
         }
+        currentState = stateMachine.CurrentState?.GetType().Name;
         stateMachine.Update();
     }
 
@@ -137,5 +150,22 @@ public abstract class Monster : MonoBehaviour
         if (Rb == null) Rb = GetComponent<Rigidbody2D>();
         if (Animator == null) Animator = GetComponent<Animator>();
         if (_directionManager == null) _directionManager = GetComponent<DirectionManager>();
+    }
+
+    public void AnimationEvent_ExecuteAttack() => 
+        (stateMachine.CurrentState as AttackState)?.ExecuteAttack();
+
+    public void AnimationEvent_EndAttack() => 
+        (stateMachine.CurrentState as AttackState)?.EndAttack();
+    public bool HasObstacleAhead()
+    {
+    Vector2 direction = new Vector2(transform.localScale.x > 0 ? 1 : -1, 0);
+    RaycastHit2D hit = Physics2D.Raycast(
+        transform.position,
+        direction,
+        0.5f, // Detection distance
+        groundLayer
+    );
+    return hit.collider != null;
     }
 }

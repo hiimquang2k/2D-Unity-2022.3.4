@@ -27,10 +27,9 @@ public class HealthBarSystem : MonoBehaviour
         _camera = Camera.main;
         healthSystem.OnHealthChanged += UpdateHealth;
         healthSystem.OnDeath += OnDeath;
-        Initialize();
     }
 
-    private void Initialize()
+    public void Initialize()
     {
         healthSlider.minValue = 0;
         healthSlider.maxValue = healthSystem.GetMaxHealth();

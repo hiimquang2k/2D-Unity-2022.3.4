@@ -6,7 +6,6 @@ public class Skeleton : Monster
     public event Action<Skeleton> OnDeath;
     private Necromancer _summoner;
     private HealthSystem _healthSystem;
-    [SerializeField] private bool _statesInitialized = false;
 
     private void Awake()
     {
@@ -15,7 +14,6 @@ public class Skeleton : Monster
         {
             _healthSystem.OnDeath += TriggerDeath;
         }
-        InitializeStates();
     }
 
     private void OnDestroy()
@@ -28,26 +26,22 @@ public class Skeleton : Monster
 
     protected override void InitializeStates()
     {
-        if (_statesInitialized) return;
-
         stateMachine.AddState(MonsterStateType.Death, new DeathState(this));
         stateMachine.AddState(MonsterStateType.Idle, new IdleState(this));
         stateMachine.AddState(MonsterStateType.Chase, new ChaseState(this, Data.decisionInterval));
-        stateMachine.AddState(MonsterStateType.Attack, new SkeletonAttackState(this));
+        stateMachine.AddState(MonsterStateType.Attack, new AttackState(this));
         
         if (Data.canPatrol)
         {
             stateMachine.AddState(MonsterStateType.Patrol, new PatrolState(this));
         }
-
-        _statesInitialized = true;
+        stateMachine.SwitchState(MonsterStateType.Idle);
     }
 
     public void Initialize(Necromancer summoner)
     {
         _summoner = summoner;
         ResetSkeleton();
-        stateMachine.SwitchState(MonsterStateType.Idle);
     }
 
     public void ResetSkeleton()

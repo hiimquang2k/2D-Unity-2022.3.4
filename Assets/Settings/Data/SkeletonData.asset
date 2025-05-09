@@ -14,22 +14,25 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   monsterType: 0
   displayName: 
-  maxHealth: 100
+  maxHealth: 195
   moveSpeed: 3
   acceleration: 2
   canPatrol: 1
   canChase: 1
   canAttack: 1
   canSummon: 0
-  attackRange: 3.58
-  attackCooldown: 1
+  attackHeight: 1
+  attackRange: 1.95
+  attackCooldown: 2
   attackVariance: 0.2
   attackDamage: 10
   attackEffect: {fileID: 0}
-  chaseSpeed: 5
-  aggroRange: 5
+  chaseSpeed: 2.49
+  aggroRange: 7.8
   decisionInterval: 0.3
   patrolRadius: 5
+  maxVerticalAggro: 1.5
+  groundCheckDistance: 0.3
   animatorController: {fileID: 0}
   defaultSprite: {fileID: 0}
   colliderSize: {x: 0.5, y: 0.5}

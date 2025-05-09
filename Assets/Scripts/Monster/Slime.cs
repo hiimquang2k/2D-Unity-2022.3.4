@@ -3,7 +3,8 @@ using UnityEngine;
 public class Slime : Monster
 {
     private int _currentSplitGeneration;
-    private SlimeData _slimeData;
+    public SlimeData _slimeData;
+    private bool _isDying = false;
 
     protected override void Start()
     {
@@ -18,6 +19,33 @@ public class Slime : Monster
         _currentSplitGeneration = 0;
         
         base.Start(); // Call base initialization
+
+        var healthSystem = GetComponent<HealthSystem>();
+        if (healthSystem != null)
+        {
+            healthSystem.OnDeath += TriggerDeath;
+        }
+    }
+
+    private void OnDestroy()
+    {
+        var healthSystem = GetComponent<HealthSystem>();
+        if (healthSystem != null)
+        {
+            healthSystem.OnDeath -= TriggerDeath;
+        }
+    }
+
+    public void TriggerDeath()
+    {
+        if (_isDying) return;
+        _isDying = true;
+        
+        // Attempt to split before entering death state
+        AttemptSplit();
+        
+        // Change to death state
+        stateMachine.SwitchState(MonsterStateType.Death);
     }
 
     protected override void InitializeStates()
@@ -25,12 +53,15 @@ public class Slime : Monster
         base.InitializeStates(); // Initialize any base states first
         
         // Override with slime-specific states
+        stateMachine.AddState(MonsterStateType.Jump, new SlimeJumpState(this));
+        stateMachine.AddState(MonsterStateType.Retreat, new SlimeRetreatState(this));
         stateMachine.AddState(MonsterStateType.Attack, new SlimeAttackState(this));
-        stateMachine.AddState(MonsterStateType.Death, new SlimeDeathState(this));
+        stateMachine.AddState(MonsterStateType.Death, new DeathState(this));
     }
 
     public void AttemptSplit()
     {
+        if (!_slimeData.canSplit) return;
         if (_currentSplitGeneration >= _slimeData.maxSplitGenerations) return;
         
         if (Random.value <= _slimeData.splitChance)
@@ -38,7 +69,7 @@ public class Slime : Monster
             for (int i = 0; i < 2; i++)
             {
                 Vector2 spawnPos = (Vector2)transform.position + 
-                                  Random.insideUnitCircle * 0.5f;
+                                Random.insideUnitCircle * 0.5f;
                 
                 var babySlime = Instantiate(
                     _slimeData.smallerSlimePrefab, 

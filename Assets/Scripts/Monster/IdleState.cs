@@ -45,7 +45,8 @@ public class IdleState : IMonsterState
         }
 
         // Time-based transition to patrol if enabled
-        if (_idleTimer <= 0 && _monster.Data.canPatrol)
+        if (_idleTimer <= 0 && _monster.Data.canPatrol && 
+            (Time.time - _monster.lastAttackTime > _monster.Data.attackCooldown || _monster.lastAttackTime == 0))
         {
             _monster.stateMachine.SwitchState(MonsterStateType.Patrol);
         }

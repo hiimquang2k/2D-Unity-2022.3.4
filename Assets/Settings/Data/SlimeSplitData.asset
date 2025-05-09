@@ -9,26 +9,26 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 413d31b0dbd526a4184874c21a231e66, type: 3}
-  m_Name: NecromancerData
+  m_Script: {fileID: 11500000, guid: 1264b521d3c105c4fbf7763283f738cd, type: 3}
+  m_Name: SlimeSplitData
   m_EditorClassIdentifier: 
-  monsterType: 1
+  monsterType: 2
   displayName: 
-  maxHealth: 200
+  maxHealth: 50
   moveSpeed: 3
   acceleration: 2
   canPatrol: 1
   canChase: 1
   canAttack: 1
-  canSummon: 1
+  canSummon: 0
   attackHeight: 1
-  attackRange: 2.6
-  attackCooldown: 5
+  attackRange: 1.5
+  attackCooldown: 1
   attackVariance: 0.2
   attackDamage: 10
   attackEffect: {fileID: 0}
   chaseSpeed: 5
-  aggroRange: 4.5
+  aggroRange: 5
   decisionInterval: 0.3
   patrolRadius: 5
   maxVerticalAggro: 1.5
@@ -43,10 +43,8 @@ MonoBehaviour:
   attackSound: {fileID: 0}
   deathSound: {fileID: 0}
   deathEffect: {fileID: 0}
-  maxSkeletons: 3
-  summonCooldown: 5
-  summonRadius: 2
-  skeletonLifetime: 20
-  skeletonPrefab: {fileID: 3475432581842552240, guid: 9b5a8265a7bc2b045b4335a3e07f9d4f, type: 3}
-  summonParticles: {fileID: 0}
-  summonSound: {fileID: 8300000, guid: 698b0a6581ee0d64cadd409052915522, type: 3}
+  canSplit: 0
+  splitChance: 0.5
+  maxSplitGenerations: 2
+  acidPoolDuration: 3
+  smallerSlimePrefab: {fileID: 0}

@@ -19,6 +19,14 @@ public class DeathState : IMonsterState
         // Trigger death animation
         _monster.Animator.SetTrigger("Death");
         
+        // Stop physics
+        var rb = _monster.GetComponent<Rigidbody2D>();
+        if (rb != null)
+        {
+            rb.velocity = Vector2.zero;
+            rb.gravityScale = 0;
+            rb.isKinematic = true;
+        }
         // Disable collisions
         var collider = _monster.GetComponent<Collider2D>();
         if (collider != null) collider.enabled = false;

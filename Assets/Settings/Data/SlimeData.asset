@@ -21,6 +21,7 @@ MonoBehaviour:
   canChase: 1
   canAttack: 1
   canSummon: 0
+  attackHeight: 1
   attackRange: 1.5
   attackCooldown: 1
   attackVariance: 0.2
@@ -30,6 +31,8 @@ MonoBehaviour:
   aggroRange: 5
   decisionInterval: 0.3
   patrolRadius: 5
+  maxVerticalAggro: 1.5
+  groundCheckDistance: 0.3
   animatorController: {fileID: 0}
   defaultSprite: {fileID: 0}
   colliderSize: {x: 0.5, y: 0.5}
@@ -40,7 +43,8 @@ MonoBehaviour:
   attackSound: {fileID: 0}
   deathSound: {fileID: 0}
   deathEffect: {fileID: 0}
-  splitChance: 0.5
+  canSplit: 1
+  splitChance: 1
   maxSplitGenerations: 2
   acidPoolDuration: 3
-  smallerSlimePrefab: {fileID: 0}
+  smallerSlimePrefab: {fileID: 2936757796499747461, guid: 0b7daaa47b31b7c4fa5e940c47938cc3, type: 3}

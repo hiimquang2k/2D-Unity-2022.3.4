@@ -9,7 +9,6 @@ using Cinemachine;
 public class HealthData : ScriptableObject
 {
     [Header("Health Settings")]
-    public int maxHealth = 100;
     public float invulnerabilityDuration = 0.1f;
     
     [Header("Visual Feedback")]
@@ -23,6 +22,7 @@ public class HealthSystem : MonoBehaviour
     [Header("Health Configuration")]
     [SerializeField] private HealthData healthData;
     [SerializeField] private int currentHealth;
+    [SerializeField] private int maxHealth;
     public bool isInvulnerable = false;
 
     private SpriteRenderer spriteRenderer;
@@ -53,7 +53,7 @@ public class HealthSystem : MonoBehaviour
 
     private void Start()
     {
-        CurrentHealth = healthData.maxHealth;
+        CurrentHealth = maxHealth;
         UpdateUI();
     }
 
@@ -115,7 +115,7 @@ public class HealthSystem : MonoBehaviour
     {
         if (CurrentHealth <= 0) return; // Can't heal if dead
 
-        CurrentHealth = Mathf.Min(healthData.maxHealth, CurrentHealth + amount);
+        CurrentHealth = Mathf.Min(maxHealth, CurrentHealth + amount);
     }
 
     public void Die()
@@ -157,52 +157,36 @@ public class HealthSystem : MonoBehaviour
         isInvulnerable = false;
     }
 
-    public void Initialize(HealthData data)
-    {
-        healthData = data;
-        CurrentHealth = healthData.maxHealth;
-        UpdateUI();
-    }
-
-    // Public getters/setters
-    public int GetMaxHealth() => healthData.maxHealth;
+    // Public getters/setters    
+    public int GetMaxHealth() => maxHealth;
     public int CurrentHealth
     {
         get => currentHealth;
         set
         {
-            currentHealth = Mathf.Clamp(value, 0, healthData.maxHealth);
-            OnHealthChanged?.Invoke(currentHealth, healthData.maxHealth);
+            currentHealth = Mathf.Clamp(value, 0, maxHealth);
+            OnHealthChanged?.Invoke(currentHealth, maxHealth);
         }
     }
-    public float GetHealthPercentage() => (float)CurrentHealth / healthData.maxHealth;
+    public float GetHealthPercentage() => (float)CurrentHealth / maxHealth;
     public bool IsInvulnerable() => isInvulnerable;
     
     // Method to manually set max health if needed
     public void SetMaxHealth(int newMaxHealth)
     {
-        // Create a runtime instance of the health data if we want to modify it at runtime
-        // This prevents modifying the original scriptable object asset
-        if (healthData != null)
-        {
-            HealthData runtimeData = Instantiate(healthData);
-            runtimeData.maxHealth = newMaxHealth;
-            healthData = runtimeData;
-            
-            // Adjust current health if needed
-            if (CurrentHealth > newMaxHealth)
-            {
-                CurrentHealth = newMaxHealth;
-            }
-            
-            UpdateUI();
-            OnHealthChanged?.Invoke(CurrentHealth, healthData.maxHealth);
-        }
+        maxHealth = newMaxHealth;
+        CurrentHealth = Mathf.Clamp(CurrentHealth, 0, maxHealth);
+        OnHealthChanged?.Invoke(CurrentHealth, maxHealth);
     }
 
     public void SetCurrentHealth(int newHealth)
     {
         Debug.Log("Setting current health to: " + newHealth);
         CurrentHealth = newHealth;
+    }
+    public void Initialize()
+    {
+        CurrentHealth = maxHealth;
+        UpdateUI();
     }
 }
