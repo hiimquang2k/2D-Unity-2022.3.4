@@ -15,7 +15,7 @@ MonoBehaviour:
   monsterType: 2
   displayName: 
   maxHealth: 100
-  moveSpeed: 3
+  moveSpeed: 1.94
   acceleration: 2
   canPatrol: 1
   canChase: 1
@@ -48,3 +48,7 @@ MonoBehaviour:
   maxSplitGenerations: 2
   acidPoolDuration: 3
   smallerSlimePrefab: {fileID: 2936757796499747461, guid: 0b7daaa47b31b7c4fa5e940c47938cc3, type: 3}
+  jumpForce: 4
+  jumpInterval: 1
+  retreatSpeed: 3
+  retreatDuration: 2

@@ -57,6 +57,7 @@ public class Slime : Monster
         stateMachine.AddState(MonsterStateType.Retreat, new SlimeRetreatState(this));
         stateMachine.AddState(MonsterStateType.Attack, new SlimeAttackState(this));
         stateMachine.AddState(MonsterStateType.Death, new DeathState(this));
+        stateMachine.SwitchState(MonsterStateType.Jump);
     }
 
     public void AttemptSplit()

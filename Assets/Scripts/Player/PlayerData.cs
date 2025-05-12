@@ -77,7 +77,10 @@ public class PlayerData : ScriptableObject
         public bool hasSave = false;
         public int savedHealth = 100;
         public Vector3 savedPosition = Vector3.zero;
-        public string savedScene = "MainScene";
+        public string savedScene = "";
+        public Vector2 savedVelocity = Vector2.zero;
+        public bool wasDashing = false;
+        public float dashCooldownRemaining = 0f;
     }
 
     public void ResetData()

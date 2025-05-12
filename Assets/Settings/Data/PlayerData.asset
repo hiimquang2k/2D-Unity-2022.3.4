@@ -47,3 +47,11 @@ MonoBehaviour:
   jumpInputBufferTime: 0.2
   attackInputBufferTime: 0.2
   initialDirection: {x: 1, y: 0}
+  saveState:
+    hasSave: 0
+    savedHealth: 100
+    savedPosition: {x: 0, y: 0, z: 0}
+    savedScene: GameScene
+    savedVelocity: {x: 0, y: 0}
+    wasDashing: 0
+    dashCooldownRemaining: 0

@@ -127,11 +127,10 @@ public class MenuManager : MonoBehaviour
     }
 
     // Your existing methods (StartGame, QuitGame, etc.)
-    public void StartGame()
+    public void StartNewGame()
     {
         playerData.ResetData();
-        // Load your game scene
-        SceneManager.LoadScene("GameScene");
+        GameManager.Instance.StartNewGame();
     }
 
     public void OpenOptions()
@@ -141,7 +140,15 @@ public class MenuManager : MonoBehaviour
 
     public void ContinueGame()
     {
-        GameManager.Instance.LoadGame();
+        if (playerData.saveState.hasSave)
+        {
+            GameManager.Instance.LoadGame();
+        }
+        else
+        {
+            Debug.LogWarning("No save data to continue from!");
+            // Optionally show a UI message to the player
+        }
     }
 
     public void QuitGame()

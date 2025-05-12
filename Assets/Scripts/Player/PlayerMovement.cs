@@ -287,4 +287,5 @@ public class PlayerMovement : MonoBehaviour
     }
     public void SetGravityScale(float scale) => body.gravityScale = scale;
     public bool IsMovementLocked => _isMovementLocked;
+    public bool IsDashing() => isDashing;
 }
