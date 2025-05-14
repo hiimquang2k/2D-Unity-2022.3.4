@@ -12,25 +12,9 @@ public class PlayerCombat : MonoBehaviour
     [SerializeField] private DirectionManager directionManager;
     [SerializeField] private ElementalSword swordGlow;
     [SerializeField] private StatusEffectManager statusManager;
-
-    [Header("Attack Settings")]
-    [SerializeField] private int attackDamage1 = 20;
-    [SerializeField] private int attackDamage2 = 30;
-    [SerializeField] private float attackDistance = 1.5f;
-    [SerializeField] private float attackCooldown = 0.5f;
-    [SerializeField] private float comboWindow = 0.8f;
-    [SerializeField] private LayerMask enemyLayer;
+    [SerializeField] private PlayerData playerData;
+    [SerializeField] private HealthSystem healthSystem;
     [SerializeField] private Transform attackOrigin;
-
-    [Header("Hitstop Settings")]
-    [SerializeField] private float hitstopDuration = 0.1f;
-    [SerializeField] private float hitstopTimeScale = 0.05f;
-
-    [Header("Effects")]
-    [SerializeField] private GameObject hitEffectPrefab;
-    [SerializeField] private AudioClip hitSound1;
-    [SerializeField] private AudioClip hitSound2;
-    
     private int comboCount = 0;
     private float lastAttackTime = 0f;
     private bool canAttack = true;
@@ -40,6 +24,9 @@ public class PlayerCombat : MonoBehaviour
 
     private void Awake()
     {
+        playerData.attackOrigin = attackOrigin;
+        healthSystem = GetComponent<HealthSystem>();
+        healthSystem.Initialize(playerData.maxHealth);
         anim = GetComponent<Animator>();
         audioSource = GetComponent<AudioSource>();
         swordGlow = GetComponentInChildren<ElementalSword>();
@@ -59,6 +46,11 @@ public class PlayerCombat : MonoBehaviour
         {
             cameraShake = FindObjectOfType<ImprovedCameraShake>();
         }
+
+        if (playerData == null)
+        {
+            playerData = Resources.Load<PlayerData>("PlayerData");
+        }
     }
 
     private void Start()
@@ -74,7 +66,7 @@ public class PlayerCombat : MonoBehaviour
         cooldownSystem.UpdateCooldown();
         canAttack = !cooldownSystem.IsOnCooldown("Attack");
 
-        if (Time.time - lastAttackTime > comboWindow && comboCount > 0)
+        if (Time.time - lastAttackTime > playerData.comboWindow && comboCount > 0)
         {
             ResetCombo();
         }
@@ -89,15 +81,15 @@ public class PlayerCombat : MonoBehaviour
             CycleElement();
         }
 
-    if (Input.GetKeyDown(KeyCode.Q))
-    {
-        Debug.Log("Q pressed - Current Element: " + swordGlow.CurrentElement);
-        if (!swordGlow.isOnCooldown && swordGlow.CurrentElement == ElementalSword.Element.Lightning)
+        if (Input.GetKeyDown(KeyCode.Q))
         {
-            Debug.Log("Attempting lightning strike...");
-            UseElementalSkill();
+            Debug.Log("Q pressed - Current Element: " + swordGlow.CurrentElement);
+            if (!swordGlow.isOnCooldown && swordGlow.CurrentElement == ElementalSword.Element.Lightning)
+            {
+                Debug.Log("Attempting lightning strike...");
+                UseElementalSkill();
+            }
         }
-    }
     }
 
     private void CycleElement()
@@ -113,7 +105,7 @@ public class PlayerCombat : MonoBehaviour
         if (swordGlow == null) return;
     
         swordGlow.UseElementalSkill();
-}
+    }
 
     void Attack()
     {
@@ -130,7 +122,7 @@ public class PlayerCombat : MonoBehaviour
         else if (comboCount == 2)
         {
             anim.Play("Attack2");
-            cooldownSystem.StartCooldown(attackCooldown, "Attack");
+            cooldownSystem.StartCooldown(playerData.attackCooldown, "Attack");
             ResetCombo();
         }
     }
@@ -142,14 +134,14 @@ public class PlayerCombat : MonoBehaviour
 
     public void PerformAttack()
     {
-        if (directionManager == null || attackOrigin == null)
+        if (directionManager == null || playerData.attackOrigin == null)
         {
             Debug.LogError("Required components not assigned!");
             return;
         }
 
         Vector2 attackDirection = directionManager.GetDirection();
-        Vector2 attackStartPos = (Vector2)attackOrigin.position;
+        Vector2 attackStartPos = (Vector2)playerData.attackOrigin.position;
 
         HashSet<HealthSystem> hitEnemies = new HashSet<HealthSystem>();
 
@@ -165,7 +157,7 @@ public class PlayerCombat : MonoBehaviour
     private void DetectEnemies(Vector2 origin, Vector2 direction, HashSet<HealthSystem> enemies)
     {
         // Circle detection for close range
-        Collider2D[] closeHits = Physics2D.OverlapCircleAll(origin, 0.5f, enemyLayer);
+        Collider2D[] closeHits = Physics2D.OverlapCircleAll(origin, 0.5f, playerData.enemyLayer);
         foreach (Collider2D collider in closeHits)
         {
             TryAddEnemy(collider, enemies);
@@ -177,8 +169,8 @@ public class PlayerCombat : MonoBehaviour
             new Vector2(0.8f, 1.2f),
             0f,
             direction,
-            attackDistance,
-            enemyLayer
+            playerData.attackDistance,
+            playerData.enemyLayer
         );
         foreach (RaycastHit2D hit in boxHits)
         {
@@ -196,7 +188,7 @@ public class PlayerCombat : MonoBehaviour
         {
             if (enemyHealth != null)
             {
-                int damage = (comboCount == 1) ? attackDamage1 : attackDamage2;
+                int damage = (comboCount == 1) ? playerData.attackDamage1 : playerData.attackDamage2;
                 enemyHealth.TakeDamage(damage, DamageType.Physical);
                 
                 // Apply elemental effects
@@ -206,9 +198,9 @@ public class PlayerCombat : MonoBehaviour
                     swordGlow.TriggerHitEffect();
                 }
 
-                if (hitEffectPrefab != null)
+                if (playerData.hitEffectPrefab != null)
                 {
-                    Instantiate(hitEffectPrefab, enemyHealth.transform.position, Quaternion.identity);
+                    Instantiate(playerData.hitEffectPrefab, enemyHealth.transform.position, Quaternion.identity);
                 }
 
                 hitAny = true;
@@ -219,7 +211,7 @@ public class PlayerCombat : MonoBehaviour
 
     private void ApplyHitEffects()
     {
-        StartCoroutine(ApplyHitstop(hitstopDuration, hitstopTimeScale));
+        StartCoroutine(ApplyHitstop(playerData.hitstopDuration, playerData.hitstopTimeScale));
         PlayHitSound();
         
         if (cameraShake != null)
@@ -241,7 +233,7 @@ public class PlayerCombat : MonoBehaviour
     {
         if (audioSource == null) return;
 
-        AudioClip clipToPlay = (comboCount == 1) ? hitSound1 : hitSound2;
+        AudioClip clipToPlay = (comboCount == 1) ? playerData.hitSound1 : playerData.hitSound2;
         if (clipToPlay != null)
         {
             audioSource.pitch = Random.Range(0.95f, 1.05f);

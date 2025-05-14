@@ -8,7 +8,7 @@ public class DistanceDialogueTrigger : MonoBehaviour
     
     [Header("Settings")]
     [SerializeField] private float dialogueDistance = 5f; 
-    [SerializeField] private string dialogueText = "Hey! Come over here!";
+    [SerializeField] private string[] dialogueLines;
     [SerializeField] private bool showOnce = true;
     [SerializeField] private string playerTag = "Player"; // Set the tag your player uses
     
@@ -43,22 +43,21 @@ public class DistanceDialogueTrigger : MonoBehaviour
     
     private void Update()
     {
-        // Skip if any required reference is missing
         if (playerTransform == null || dialogueSystem == null) return;
-        
-        // Skip if we've already shown the dialogue and it's set to show only once
         if (showOnce && hasShownDialogue) return;
         
-        // Calculate distance between NPC and player
         float distanceToPlayer = Vector2.Distance(transform.position, playerTransform.position);
         
-        // Show dialogue when player is within range
         if (distanceToPlayer <= dialogueDistance)
         {
             dialogueSystem.SetTargetCharacter(transform);
-            dialogueSystem.ShowDialogue(dialogueText);
             
-            hasShownDialogue = true;
+            // Only start dialogue if not already showing
+            if (!dialogueSystem.IsDialogueActive())
+            {
+                dialogueSystem.StartDialogue(dialogueLines);
+                hasShownDialogue = true;
+            }
         }
     }
     

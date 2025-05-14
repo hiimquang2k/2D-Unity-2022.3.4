@@ -117,6 +117,8 @@ public class DamageSystem : MonoBehaviour
     {
         healthSystem?.TakeDamage(damage, type);
         if (canBeKnockedBack) HandleKnockback();
+
+        animator?.SetTrigger("TakeDamage");
     }
 }
     private void HandleKnockback()

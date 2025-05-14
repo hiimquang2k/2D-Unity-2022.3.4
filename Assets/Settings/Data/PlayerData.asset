@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bc79278d73ccc3c48bb8cd27e8563ab5, type: 3}
   m_Name: PlayerData
   m_EditorClassIdentifier: 
+  maxHealth: 100
   gravityStrength: -32
   gravityScale: 3.2619774
   fallGravityMult: 1.5
@@ -47,6 +48,20 @@ MonoBehaviour:
   jumpInputBufferTime: 0.2
   attackInputBufferTime: 0.2
   initialDirection: {x: 1, y: 0}
+  attackDamage1: 20
+  attackDamage2: 30
+  attackDistance: 1.5
+  attackCooldown: 0.5
+  comboWindow: 0.8
+  enemyLayer:
+    serializedVersion: 2
+    m_Bits: 8
+  hitstopDuration: 0.1
+  hitstopTimeScale: 0.05
+  hitEffectPrefab: {fileID: 0}
+  hitSound1: {fileID: 0}
+  hitSound2: {fileID: 0}
+  attackOrigin: {fileID: 0}
   saveState:
     hasSave: 0
     savedHealth: 100

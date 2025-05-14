@@ -3,7 +3,7 @@ using UnityEngine;
 public class AttackState : IMonsterState
 {
     protected Monster _monster;
-    private bool _attackExecuted;
+    protected bool _attackExecuted;
     
     // Animation hashes
     private static readonly int AttackTrigger = Animator.StringToHash("Attack");

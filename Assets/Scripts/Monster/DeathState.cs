@@ -35,6 +35,9 @@ public class DeathState : IMonsterState
         var damageSystem = _monster.GetComponent<DamageSystem>();
         if (damageSystem != null) damageSystem.SetDamageable(false);
 
+        // Grant XP reward
+        PerkSystem.Instance.AddXp(_monster.Data.xpReward);
+
         // Start death sequence
         _deathTimer = 2f; // Time until destruction
         _deathSequenceStarted = true;

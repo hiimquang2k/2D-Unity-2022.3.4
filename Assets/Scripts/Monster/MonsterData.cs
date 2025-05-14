@@ -1,6 +1,6 @@
 using UnityEngine;
 
-[CreateAssetMenu(fileName = "NewMonsterData", menuName = "Monster/Monster Data")]
+[CreateAssetMenu(fileName = "NewMonsterData", menuName = "Game/Monster/Monster Data")]
 public class MonsterData : ScriptableObject
 {
     [Header("Core Identity")]
@@ -12,6 +12,9 @@ public class MonsterData : ScriptableObject
     [Range(0.1f, 10f)] public float moveSpeed = 3f;
     [Range(0.1f, 5f)] public float acceleration = 2f;
 
+    [Header("XP Reward")]
+    [Range(1, 100)] public int xpReward = 10;
+    
     [Header("Behavior Flags")]
     public bool canPatrol = true;
     public bool canChase = true;

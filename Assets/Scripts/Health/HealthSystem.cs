@@ -4,25 +4,15 @@ using System.Collections;
 using System;
 using Cinemachine;
 
-// Create a scriptable object to store health data
-[CreateAssetMenu(fileName = "NewHealthData", menuName = "Game/Health Data")]
-public class HealthData : ScriptableObject
-{
-    [Header("Health Settings")]
-    public float invulnerabilityDuration = 0.1f;
-    
-    [Header("Visual Feedback")]
-    public float flashDuration = 0.1f;
-    public Color flashColor = Color.red;
-    public int numberOfFlashes = 3;
-}
-
 public class HealthSystem : MonoBehaviour
 {
     [Header("Health Configuration")]
-    [SerializeField] private HealthData healthData;
-    [SerializeField] private int currentHealth;
-    [SerializeField] private int maxHealth;
+    public int maxHealth;
+    public int currentHealth;
+    public float invulnerabilityDuration = 0.1f;
+    public float flashDuration = 0.1f;
+    public Color flashColor = Color.red;
+    public int numberOfFlashes = 3;
     public bool isInvulnerable = false;
 
     private SpriteRenderer spriteRenderer;
@@ -41,13 +31,6 @@ public class HealthSystem : MonoBehaviour
         if (spriteRenderer != null)
         {
             originalColor = spriteRenderer.color;
-        }
-        
-        // If no health data is assigned, create a default instance
-        if (healthData == null)
-        {
-            healthData = ScriptableObject.CreateInstance<HealthData>();
-            Debug.LogWarning("No HealthData assigned to " + gameObject.name + ". Using default values.");
         }
     }
 
@@ -134,26 +117,20 @@ public class HealthSystem : MonoBehaviour
     private IEnumerator FlashRoutine()
     {
         isFlashing = true;
-        
-        for (int i = 0; i < healthData.numberOfFlashes; i++)
+        for (int i = 0; i < numberOfFlashes; i++)
         {
-            spriteRenderer.color = healthData.flashColor;
-            yield return new WaitForSeconds(healthData.flashDuration);
+            spriteRenderer.color = flashColor;
+            yield return new WaitForSeconds(flashDuration);
             spriteRenderer.color = originalColor;
-            
-            if (i < healthData.numberOfFlashes - 1)
-            {
-                yield return new WaitForSeconds(healthData.flashDuration);
-            }
+            yield return new WaitForSeconds(flashDuration);
         }
-        
         isFlashing = false;
     }
 
     private IEnumerator InvulnerabilityRoutine()
     {
         isInvulnerable = true;
-        yield return new WaitForSeconds(healthData.invulnerabilityDuration);
+        yield return new WaitForSeconds(invulnerabilityDuration);
         isInvulnerable = false;
     }
 
@@ -184,9 +161,9 @@ public class HealthSystem : MonoBehaviour
         Debug.Log("Setting current health to: " + newHealth);
         CurrentHealth = newHealth;
     }
-    public void Initialize()
+    public void Initialize(int maxHP)
     {
-        CurrentHealth = maxHealth;
-        UpdateUI();
+        maxHealth = maxHP;
+        currentHealth = (int)maxHP;
     }
 }

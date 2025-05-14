@@ -9,50 +9,47 @@ public class FloatingDialogue : MonoBehaviour
     [SerializeField] private TextMeshProUGUI dialogueText;
     
     [Header("Settings")]
-    [SerializeField] private float displayTime = 3f;
+    [SerializeField] private KeyCode progressKey = KeyCode.Space;
     [SerializeField] private float characterTypingSpeed = 0.05f;
     [SerializeField] private Vector3 dialogueOffset = new Vector3(0, 1.5f, 0);
     
     private Transform targetCharacter;
     private Coroutine typingCoroutine;
-    private Coroutine displayCoroutine;
-    
+    private string[] currentLines;
+    private int currentLineIndex;
+    private bool isTyping;
+
+    public bool IsDialogueActive() => dialoguePanel.activeSelf;
+
     private void Awake()
     {
         dialoguePanel.SetActive(false);
     }
-    
-    public void SetTargetCharacter(Transform character)
+
+    public void StartDialogue(string[] lines)
     {
-        targetCharacter = character;
+        StopAllCoroutines();
+        currentLines = lines;
+        currentLineIndex = 0;
+        ShowNextLine();
     }
-    
-    public void ShowDialogue(string message)
+
+    private void ShowNextLine()
     {
-        if (targetCharacter == null)
+        if (currentLineIndex >= currentLines.Length)
         {
-            Debug.LogError("Target character not set for dialogue!");
+            HideDialogue();
             return;
         }
-        
-        // Stop any ongoing dialogue
-        StopAllCoroutines();
-        
-        // Position dialogue panel above character
+
         transform.position = targetCharacter.position + dialogueOffset;
-        
-        // Show dialogue
         dialoguePanel.SetActive(true);
-        
-        // Start typing effect
-        typingCoroutine = StartCoroutine(TypeDialogue(message));
-        
-        // Start display timer
-        displayCoroutine = StartCoroutine(HideDialogueAfterDelay());
+        typingCoroutine = StartCoroutine(TypeDialogue(currentLines[currentLineIndex]));
     }
-    
+
     private IEnumerator TypeDialogue(string message)
     {
+        isTyping = true;
         dialogueText.text = "";
         
         foreach (char letter in message.ToCharArray())
@@ -60,27 +57,47 @@ public class FloatingDialogue : MonoBehaviour
             dialogueText.text += letter;
             yield return new WaitForSeconds(characterTypingSpeed);
         }
+        isTyping = false;
     }
-    
-    private IEnumerator HideDialogueAfterDelay()
+
+    private void Update()
     {
-        yield return new WaitForSeconds(displayTime);
-        dialoguePanel.SetActive(false);
-    }
-    
-    private void LateUpdate()
-    {
-        // Keep dialogue above character if target exists
-        if (targetCharacter != null && dialoguePanel.activeSelf)
+        if (!IsDialogueActive()) return;
+
+        if (Input.GetKeyDown(progressKey))
         {
-            transform.position = targetCharacter.position + dialogueOffset;
+            if (isTyping)
+            {
+                // Skip typing animation
+                StopCoroutine(typingCoroutine);
+                dialogueText.text = currentLines[currentLineIndex];
+                isTyping = false;
+            }
+            else
+            {
+                currentLineIndex++;
+                ShowNextLine();
+            }
         }
     }
-    
-    // Call this to hide dialogue immediately
+
     public void HideDialogue()
     {
         StopAllCoroutines();
         dialoguePanel.SetActive(false);
+        currentLines = null;
+        currentLineIndex = 0;
+    }
+
+    private void LateUpdate()
+    {
+        if (targetCharacter != null && IsDialogueActive())
+        {
+            transform.position = targetCharacter.position + dialogueOffset;
+        }
+    }
+    public void SetTargetCharacter(Transform character)
+    {
+        targetCharacter = character;
     }
 }

@@ -175,9 +175,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 91a178889b0991141bcd6c9eb58b3d8b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  healthData: {fileID: 0}
-  currentHealth: 0
   maxHealth: 0
+  currentHealth: 0
+  invulnerabilityDuration: 0.1
+  flashDuration: 0.1
+  flashColor: {r: 1, g: 0, b: 0, a: 1}
+  numberOfFlashes: 3
   isInvulnerable: 0
 --- !u!114 &7690585292796268960
 MonoBehaviour:
@@ -215,27 +218,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f4ceb96c496b6144cbb80e9ae88268ba, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  damageSystem: {fileID: 0}
+  damageSystem: {fileID: 3492649286728659686}
   cameraShake: {fileID: 0}
-  playerMovement: {fileID: 0}
+  playerMovement: {fileID: 7690585292796268960}
   cooldownSystem: {fileID: 0}
   directionManager: {fileID: 0}
-  swordGlow: {fileID: 0}
+  swordGlow: {fileID: 2181141751455387654}
   statusManager: {fileID: 0}
-  attackDamage1: 20
-  attackDamage2: 30
-  attackDistance: 1.5
-  attackCooldown: 0.5
-  comboWindow: 0.8
-  enemyLayer:
-    serializedVersion: 2
-    m_Bits: 8
+  playerData: {fileID: 11400000, guid: d1dcf187f768a724083ad16a9cd85dc3, type: 2}
+  healthSystem: {fileID: 3837103630689850344}
   attackOrigin: {fileID: 2498225593454566147}
-  hitstopDuration: 0.1
-  hitstopTimeScale: 0.05
-  hitEffectPrefab: {fileID: 0}
-  hitSound1: {fileID: 0}
-  hitSound2: {fileID: 0}
 --- !u!61 &6175254313984301075
 BoxCollider2D:
   m_ObjectHideFlags: 0

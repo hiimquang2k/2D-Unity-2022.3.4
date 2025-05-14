@@ -47,8 +47,7 @@ public abstract class Monster : MonoBehaviour
         var healthSystem = GetComponent<HealthSystem>();
         if (healthSystem != null)
         {
-            healthSystem.SetMaxHealth(Data.maxHealth);
-            healthSystem.Initialize();
+            healthSystem.Initialize(Data.maxHealth);
         }
         var healthBar = GetComponentInChildren<HealthBarSystem>();
         healthBar.Initialize();

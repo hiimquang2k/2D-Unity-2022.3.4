@@ -1,37 +1,27 @@
 using UnityEngine;
-public class SlimeAttackState : IMonsterState
+
+public class SlimeAttackState : AttackState
 {
     private readonly Slime _slime;
-    private bool _attackExecuted;
-
-    public SlimeAttackState(Slime slime)
+    
+    public SlimeAttackState(Slime slime) : base(slime)
     {
         _slime = slime;
     }
 
-    public void Enter()
+    public override void Enter()
     {
-        _slime.Animator.SetTrigger("Attack");
-        _attackExecuted = false;
+        base.Enter(); // Call the base class Enter method
+
+        // Trigger the acid attack animation
+        _slime.Animator.SetTrigger("AcidAttack");
     }
 
-    public void Update()
+    public override void ExecuteAttack()
     {
-        if (!_attackExecuted && IsAttackFrame())
-        {
-            ExecuteAcidSplash();
-            _attackExecuted = true;
-        }
-    }
+        if (_attackExecuted) return;
+        _attackExecuted = true;
 
-    private bool IsAttackFrame()
-    {
-        AnimatorStateInfo stateInfo = _slime.Animator.GetCurrentAnimatorStateInfo(0);
-        return stateInfo.IsTag("Attack") && stateInfo.normalizedTime >= 0.5f;
-    }
-
-    private void ExecuteAcidSplash()
-    {
         Collider2D[] hits = Physics2D.OverlapCircleAll(
             _slime.transform.position,
             _slime.Data.attackRange * 1.5f
@@ -51,7 +41,6 @@ public class SlimeAttackState : IMonsterState
         
         SpawnAcidPool();
     }
-
     private void SpawnAcidPool()
     {
         if (_slime.Data.attackEffect != null)
@@ -61,9 +50,7 @@ public class SlimeAttackState : IMonsterState
                 _slime.transform.position,
                 Quaternion.identity
             );
-            Object.Destroy(pool, 3f);
+            Object.Destroy(pool, 3f); // Destroy the pool after 3 seconds
         }
     }
-
-    public void Exit() { }
 }

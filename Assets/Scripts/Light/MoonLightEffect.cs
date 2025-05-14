@@ -101,7 +101,7 @@ public class MoonVisualEffect : MonoBehaviour
             starSprite.sprite = CreateCircleSprite(8, Color.white);
             
             // Random size
-            float starSize = Random.Range(0.05f, 0.15f);
+            float starSize = Random.Range(0.5f, 1f);
             starSprite.transform.localScale = Vector3.one * starSize;
             
             // Random brightness

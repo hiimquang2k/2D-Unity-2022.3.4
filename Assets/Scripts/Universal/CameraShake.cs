@@ -7,6 +7,7 @@ public class ImprovedCameraShake : MonoBehaviour
     [Header("Shake Settings")]
     [SerializeField] private float playerShakeIntensity = 0.15f;
     [SerializeField] private float monsterShakeIntensity = 0.3f;
+    [SerializeField] private float bossShakeIntensity = 0.2f;
     [SerializeField] private float shakeDuration = 0.3f;
     [SerializeField] private float decreaseFactor = 1.5f;
     [SerializeField] private NoiseSettings noiseProfile2D; // Assign a 2D-specific noise profile
@@ -84,6 +85,7 @@ public class ImprovedCameraShake : MonoBehaviour
     {
         float shakeIntensity = entity.CompareTag("Player") ? playerShakeIntensity :
                              entity.CompareTag("Monster") ? monsterShakeIntensity :
+                             entity.CompareTag("Boss") ? bossShakeIntensity :
                              playerShakeIntensity;
 
         if (isShaking)

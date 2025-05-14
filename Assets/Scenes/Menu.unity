@@ -4228,6 +4228,69 @@ RectTransform:
   m_AnchoredPosition: {x: -5, y: 0}
   m_SizeDelta: {x: -20, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!1 &1360762540
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1360762542}
+  - component: {fileID: 1360762541}
+  m_Layer: 0
+  m_Name: MusicManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1360762541
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1360762540}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 294e2e4adbe93c14683c18b1e0551bdf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  fadeDuration: 1
+  shufflePlaylist: 0
+  musicLibrary:
+  - name: Level1Theme
+    clip: {fileID: 8300000, guid: 083df0191ff91f14f98ecda1a8a053fb, type: 3}
+    volume: 0
+    priority: 0
+  - name: Level2Theme
+    clip: {fileID: 8300000, guid: dbc2fc241e34fc84f9b0ea990691af26, type: 3}
+    volume: 0
+    priority: 0
+  - name: 
+    clip: {fileID: 8300000, guid: fbe55bd1e535c7a49a7db2170efdf765, type: 3}
+    volume: 0
+    priority: 0
+  - name: BossTheme
+    clip: {fileID: 8300000, guid: 56167f6dc5899774bad6f47365daca03, type: 3}
+    volume: 0
+    priority: 0
+--- !u!4 &1360762542
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1360762540}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 10.50968, y: -2.4991727, z: 0.056818318}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1413373553
 GameObject:
   m_ObjectHideFlags: 0
@@ -5645,3 +5708,4 @@ SceneRoots:
   - {fileID: 1234970119}
   - {fileID: 975127335}
   - {fileID: 316075305}
+  - {fileID: 1360762542}

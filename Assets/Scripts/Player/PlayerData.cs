@@ -1,8 +1,11 @@
 using UnityEngine;
 
-[CreateAssetMenu(fileName = "PlayerData", menuName = "Scriptable Objects/PlayerData")]
+[CreateAssetMenu(fileName = "PlayerData", menuName = "Game/Player/PlayerData")]
 public class PlayerData : ScriptableObject
 {
+    [Header("Health Settings")]
+    public int maxHealth = 100;
+
     [Header("Gravity")]
     [HideInInspector] public float gravityStrength;
     [HideInInspector] public float gravityScale;
@@ -68,6 +71,19 @@ public class PlayerData : ScriptableObject
     [Header("Direction")]
     public Vector2 initialDirection = Vector2.right;
 
+    [Header("Combat Settings")]
+    public int attackDamage1 = 20;
+    public int attackDamage2 = 30;
+    public float attackDistance = 1.5f;
+    public float attackCooldown = 0.5f;
+    public float comboWindow = 0.8f;
+    public LayerMask enemyLayer;
+    public float hitstopDuration = 0.1f;
+    public float hitstopTimeScale = 0.05f;
+    public GameObject hitEffectPrefab;
+    public AudioClip hitSound1;
+    public AudioClip hitSound2;
+    public Transform attackOrigin;
     public SaveState saveState = new SaveState();
 
     // Existing code...

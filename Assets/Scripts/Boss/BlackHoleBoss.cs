@@ -4,43 +4,11 @@ using System.Collections;
 
 public class BlackHoleBoss : MonoBehaviour
 {
-    [Header("Health Settings")]
+        [Header("References")]
+    [SerializeField] private BlackHoleBossData bossData;
     [SerializeField] private HealthSystem healthSystem;
-
-    [Header("Meteor Settings")]
-    [SerializeField] private GameObject meteorPrefab;
-    [SerializeField] private float meteorSpawnHeight = 5f;
-    [SerializeField] private float baseMeteorFallSpeed = 5f;
-    [SerializeField] private int baseMeteorDamage = 10;
-    [SerializeField] private float baseMeteorImpactRadius = 1f;
-
-    [Header("Black Hole Spawn Settings")]
-    [SerializeField] private GameObject blackHolePrefab;
-    [SerializeField] private float minSpawnInterval = 10f;
-    [SerializeField] private float maxSpawnInterval = 15f;
-    [SerializeField] private float spawnDistanceFromBoss = 5f;
-    
-    [Header("Teleport Settings")]
-    [SerializeField] private float teleportCooldown = 8f;
-    [SerializeField] private float minTeleportDistance = 5f;
-    [SerializeField] private float maxTeleportDistance = 10f;
-
-    [Header("Attack Settings")]
-    [SerializeField] private float attackCooldown = 10f;
-    [SerializeField] private float attackImpactRadius = 3f;
-    [SerializeField] private int attackDamage = 20;
-    [SerializeField] private LayerMask playerLayer;
-    [Header("Audio")]
-    [SerializeField] private AudioClip attackAudio;
-    private AudioSource audioSource;
-
-    [Header("Animations")]
     [SerializeField] private Animator bossAnimator;
-    [SerializeField] private string spawnAnimTrigger = "Cast";
-    [SerializeField] private string preTeleportTrigger = "PreTeleport";
-    [SerializeField] private string teleportTrigger = "Teleport";
-    [SerializeField] private string attackTrigger = "Attack";
-
+    private AudioSource audioSource;
     private ImprovedCameraShake cameraShake;
     private Transform playerTarget;
     private bool isActionInProgress;
@@ -49,14 +17,16 @@ public class BlackHoleBoss : MonoBehaviour
 
     private void Start()
     {
-        cameraShake = Camera.main.GetComponent<ImprovedCameraShake>();
+        healthSystem.Initialize(bossData.maxHealth);
+        cameraShake = FindObjectOfType<ImprovedCameraShake>();
         playerTarget = GameObject.FindGameObjectWithTag("Player").transform;
         audioSource = GetComponent<AudioSource>();
         if (audioSource == null)
         {
             audioSource = gameObject.AddComponent<AudioSource>();
         }
-        
+        healthSystem.OnHealthChanged += (current, max) => UpdateHealthUI();
+        healthSystem.OnDeath += ShowDeathUI;
         StartCoroutine(BlackHoleSpawnCycle());
         StartCoroutine(TeleportRoutine());
         StartCoroutine(AttackRoutine());
@@ -65,28 +35,34 @@ public class BlackHoleBoss : MonoBehaviour
 
     private IEnumerator BackgroundMeteorShower()
     {
-        while(true)
+        while (true)
         {
             yield return new WaitForSeconds(Random.Range(3f, 5f));
-            SpawnSingleMeteor();
+
+            int numberOfMeteors = Random.Range(3, 6); // Spawn between 3 to 5 meteors
+            for (int i = 0; i < numberOfMeteors; i++)
+            {
+                SpawnSingleMeteor();
+                yield return new WaitForSeconds(0.2f); // Delay between each meteor spawn
+            }
         }
     }
 
     private void SpawnSingleMeteor()
     {
         Vector2 spawnPos = (Vector2)playerTarget.position + Random.insideUnitCircle * 10f;
-        spawnPos.y += meteorSpawnHeight;
+        spawnPos.y += bossData.meteorSpawnHeight;
         
-        GameObject meteor = Instantiate(meteorPrefab, spawnPos, Quaternion.identity);
+        GameObject meteor = Instantiate(bossData.meteorPrefab, spawnPos, Quaternion.identity);
         Meteor meteorScript = meteor.GetComponent<Meteor>();
-        meteorScript.Initialize(baseMeteorFallSpeed, baseMeteorDamage, baseMeteorImpactRadius);
+        meteorScript.Initialize(bossData.baseMeteorFallSpeed, bossData.baseMeteorDamage, bossData.baseMeteorImpactRadius);
     }
 
     private IEnumerator AttackRoutine()
     {
         while(true)
         {
-            yield return new WaitForSeconds(attackCooldown);
+            yield return new WaitForSeconds(bossData.attackCooldown);
             if(!isActionInProgress) StartCoroutine(PerformAttack());
         }
     }
@@ -98,7 +74,7 @@ public class BlackHoleBoss : MonoBehaviour
 
         // 1. Pre-Teleport at original position
         FacePlayerDirection();
-        bossAnimator.SetTrigger(preTeleportTrigger);
+        bossAnimator.SetTrigger(bossData.preTeleportTrigger);
         yield return new WaitForSeconds(1.1f); // Match PreTeleport animation length
 
         // 2. Instant move to player position
@@ -106,11 +82,11 @@ public class BlackHoleBoss : MonoBehaviour
         transform.position = attackPosition;
 
         // 3. Play AttackAnim with jump-down animation
-        bossAnimator.SetTrigger(attackTrigger);
+        bossAnimator.SetTrigger(bossData.attackTrigger);
         attackImpactTriggered = false;
         
         yield return new WaitForSeconds(1.25f);
-        audioSource.PlayOneShot(attackAudio);
+        audioSource.PlayOneShot(bossData.attackAudio);
         // 4. Wait for attack impact event from animation
         yield return new WaitUntil(() => attackImpactTriggered);
 
@@ -120,19 +96,21 @@ public class BlackHoleBoss : MonoBehaviour
     // Animation Event called during strike frame
     public void OnAttackImpact()
     {
+        Debug.Log("Attack Impact Triggered"); // Check if this logs
         ApplyAoEDamage();
         attackImpactTriggered = true;
-        cameraShake?.ShakeCamera(2f);
+        if (cameraShake == null) Debug.LogError("CameraShake reference is missing!");
+        else cameraShake.ShakeCamera(0.25f);
     }
 
     private void ApplyAoEDamage()
     {
-        Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, attackImpactRadius, playerLayer);
+        Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, bossData.attackImpactRadius, bossData.playerLayer);
         foreach(Collider2D hit in hits)
         {
             if(hit.CompareTag("Player"))
             {
-                hit.GetComponent<DamageSystem>()?.ApplyDamage(attackDamage, DamageType.Environmental, transform.position);
+                hit.GetComponent<DamageSystem>()?.ApplyDamage(bossData.attackDamage, DamageType.Environmental, transform.position);
             }
         }
     }
@@ -148,7 +126,7 @@ public class BlackHoleBoss : MonoBehaviour
     {
         while (true)
         {
-            yield return new WaitForSeconds(teleportCooldown);
+            yield return new WaitForSeconds(bossData.teleportCooldown);
             if (!isActionInProgress) StartCoroutine(PerformTeleport());
         }
     }
@@ -159,17 +137,17 @@ public class BlackHoleBoss : MonoBehaviour
         originalPosition = transform.position;
 
         // Phase 1: Pre-teleport animation
-        bossAnimator.SetTrigger(preTeleportTrigger);
+        bossAnimator.SetTrigger(bossData.preTeleportTrigger);
         yield return new WaitForSeconds(0.5f);
 
         // Phase 2: Calculate escape position
         Vector2 escapeDirection = (originalPosition - playerTarget.position).normalized;
         Vector2 teleportPosition = originalPosition + 
-            (Vector3)(escapeDirection * Random.Range(minTeleportDistance, maxTeleportDistance));
+            (Vector3)(escapeDirection * Random.Range(bossData.minTeleportDistance, bossData.maxTeleportDistance));
 
         // Phase 3: Teleport animation at new position
         transform.position = teleportPosition;
-        bossAnimator.SetTrigger(teleportTrigger);
+        bossAnimator.SetTrigger(bossData.teleportTrigger);
         yield return new WaitForSeconds(0.75f);
 
         isActionInProgress = false;
@@ -179,12 +157,12 @@ public class BlackHoleBoss : MonoBehaviour
     {
         while (true)
         {
-            yield return new WaitForSeconds(Random.Range(minSpawnInterval, maxSpawnInterval));
+            yield return new WaitForSeconds(Random.Range(bossData.minSpawnInterval, bossData.maxSpawnInterval));
             
             // Trigger spawn animation
             if (bossAnimator != null)
             {
-                bossAnimator.SetTrigger(spawnAnimTrigger);
+                bossAnimator.SetTrigger(bossData.spawnAnimTrigger);
             }
 
             // Wait for animation to reach casting point
@@ -196,16 +174,16 @@ public class BlackHoleBoss : MonoBehaviour
 
     private void SpawnBlackHole()
     {
-        if (blackHolePrefab == null) return;
+        if (bossData.blackHolePrefab == null) return;
 
         Vector2 spawnPos = GetSpawnPositionAroundPlayer();
-        Instantiate(blackHolePrefab, spawnPos, Quaternion.identity);
+        Instantiate(bossData.blackHolePrefab, spawnPos, Quaternion.identity);
     }
 
     private Vector2 GetSpawnPositionAroundPlayer()
     {
         Vector2 randomDirection = Random.insideUnitCircle.normalized;
-        return (Vector2)playerTarget.position + (randomDirection * spawnDistanceFromBoss);
+        return (Vector2)playerTarget.position + (randomDirection * bossData.spawnDistanceFromBoss);
     }
 
     // Add this to handle animation events if needed
@@ -234,5 +212,14 @@ public class BlackHoleBoss : MonoBehaviour
         }
         
         return Mathf.RoundToInt(rawDamage * multiplier);
+    }
+    private void UpdateHealthUI()
+    {
+        // Optional: Add any boss-specific health update logic
+    }
+
+    private void ShowDeathUI()
+    {
+        // Optional: Add boss death UI effects
     }
 }
