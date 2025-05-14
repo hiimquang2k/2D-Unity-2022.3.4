@@ -13,12 +13,12 @@ MonoBehaviour:
   m_Name: BossData
   m_EditorClassIdentifier: 
   maxHealth: 1000
-  meteorPrefab: {fileID: 0}
+  meteorPrefab: {fileID: 7072887163183227587, guid: 2856c483eadce8a459d9eeff9856a510, type: 3}
   meteorSpawnHeight: 5
   baseMeteorFallSpeed: 5
   baseMeteorDamage: 10
   baseMeteorImpactRadius: 1
-  blackHolePrefab: {fileID: 0}
+  blackHolePrefab: {fileID: 952870040888394995, guid: 25166491e7dcca14481e0e1d299e6d3e, type: 3}
   minSpawnInterval: 10
   maxSpawnInterval: 15
   spawnDistanceFromBoss: 5

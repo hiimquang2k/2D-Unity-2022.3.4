@@ -53,11 +53,12 @@ public class Slime : Monster
         base.InitializeStates(); // Initialize any base states first
         
         // Override with slime-specific states
-        stateMachine.AddState(MonsterStateType.Jump, new SlimeJumpState(this));
-        stateMachine.AddState(MonsterStateType.Retreat, new SlimeRetreatState(this));
-        stateMachine.AddState(MonsterStateType.Attack, new SlimeAttackState(this));
+        stateMachine.AddState(MonsterStateType.Attack, new AttackState(this));
         stateMachine.AddState(MonsterStateType.Death, new DeathState(this));
-        stateMachine.SwitchState(MonsterStateType.Jump);
+        stateMachine.AddState(MonsterStateType.Idle, new IdleState(this));
+        stateMachine.AddState(MonsterStateType.Chase, new ChaseState(this));
+        stateMachine.AddState(MonsterStateType.Patrol, new PatrolState(this));
+        stateMachine.SwitchState(MonsterStateType.Idle);
     }
 
     public void AttemptSplit()

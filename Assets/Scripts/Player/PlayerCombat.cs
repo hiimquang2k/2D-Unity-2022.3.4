@@ -156,8 +156,9 @@ public class PlayerCombat : MonoBehaviour
 
     private void DetectEnemies(Vector2 origin, Vector2 direction, HashSet<HealthSystem> enemies)
     {
+        LayerMask combinedLayer = playerData.enemyLayer | playerData.bossLayer;
         // Circle detection for close range
-        Collider2D[] closeHits = Physics2D.OverlapCircleAll(origin, 0.5f, playerData.enemyLayer);
+        Collider2D[] closeHits = Physics2D.OverlapCircleAll(origin, 0.5f, combinedLayer);
         foreach (Collider2D collider in closeHits)
         {
             TryAddEnemy(collider, enemies);
@@ -170,7 +171,7 @@ public class PlayerCombat : MonoBehaviour
             0f,
             direction,
             playerData.attackDistance,
-            playerData.enemyLayer
+            combinedLayer
         );
         foreach (RaycastHit2D hit in boxHits)
         {

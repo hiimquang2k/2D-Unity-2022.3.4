@@ -65,6 +65,11 @@ public class HealthBarSystem : MonoBehaviour
         transform.position = targetTransform.position + offset;
         transform.rotation = Quaternion.LookRotation(transform.position - _camera.transform.position);
 
+        // Flip the health bar based on monster's direction
+        Vector3 localScale = transform.localScale;
+        localScale.x = Mathf.Abs(localScale.x) * Mathf.Sign(targetTransform.localScale.x);
+        transform.localScale = localScale;
+
         if ((_timeSinceDamage += Time.deltaTime) > displayDuration)
         {
             GetComponent<CanvasGroup>().alpha = Mathf.MoveTowards(

@@ -9,12 +9,4 @@ public class SlimeData : MonsterData
     public int maxSplitGenerations = 2;
     public float acidPoolDuration = 3f;
     public GameObject smallerSlimePrefab;
-    
-    [Header("Jump Properties")]
-    public float jumpForce = 10f;
-    public float jumpInterval = 2f;
-
-    [Header("Retreat Properties")]
-    public float retreatSpeed = 3f;
-    public float retreatDuration = 2f;
 }

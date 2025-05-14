@@ -83,9 +83,9 @@ public class ImprovedCameraShake : MonoBehaviour
 
     public void TriggerCameraShake(GameObject entity)
     {
-        float shakeIntensity = entity.CompareTag("Player") ? playerShakeIntensity :
-                             entity.CompareTag("Monster") ? monsterShakeIntensity :
-                             entity.CompareTag("Boss") ? bossShakeIntensity :
+        float shakeIntensity = entity.layer == LayerMask.NameToLayer("Player") ? playerShakeIntensity :
+                             entity.layer == LayerMask.NameToLayer("Enemy") ? monsterShakeIntensity :
+                             entity.layer == LayerMask.NameToLayer("Boss") ? bossShakeIntensity :
                              playerShakeIntensity;
 
         if (isShaking)

@@ -56,6 +56,9 @@ MonoBehaviour:
   enemyLayer:
     serializedVersion: 2
     m_Bits: 8
+  bossLayer:
+    serializedVersion: 2
+    m_Bits: 256
   hitstopDuration: 0.1
   hitstopTimeScale: 0.05
   hitEffectPrefab: {fileID: 0}

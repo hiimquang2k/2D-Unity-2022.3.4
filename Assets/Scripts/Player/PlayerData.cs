@@ -78,6 +78,7 @@ public class PlayerData : ScriptableObject
     public float attackCooldown = 0.5f;
     public float comboWindow = 0.8f;
     public LayerMask enemyLayer;
+    public LayerMask bossLayer;
     public float hitstopDuration = 0.1f;
     public float hitstopTimeScale = 0.05f;
     public GameObject hitEffectPrefab;

@@ -242,6 +242,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 64
   currentState: 
+  _slimeData: {fileID: 11400000, guid: 2181633962231c04889949c877b337e2, type: 2}
 --- !u!114 &3841231510428798766
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -254,7 +255,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bc092a21bee5e6b49a88ce94939316c0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  healthSystem: {fileID: 0}
+  healthSystem: {fileID: 2935878639022139230}
   canTakeDamage: 1
   canBeKnockedBack: 1
   knockbackForce: 10
@@ -272,9 +273,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 91a178889b0991141bcd6c9eb58b3d8b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  healthData: {fileID: 0}
-  currentHealth: 0
   maxHealth: 0
+  currentHealth: 0
+  invulnerabilityDuration: 0.1
+  flashDuration: 0.1
+  flashColor: {r: 1, g: 0, b: 0, a: 1}
+  numberOfFlashes: 3
   isInvulnerable: 0
 --- !u!1001 &7868948301441150341
 PrefabInstance:

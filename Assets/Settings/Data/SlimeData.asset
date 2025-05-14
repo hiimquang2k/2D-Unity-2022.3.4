@@ -17,6 +17,7 @@ MonoBehaviour:
   maxHealth: 100
   moveSpeed: 1.94
   acceleration: 2
+  xpReward: 10
   canPatrol: 1
   canChase: 1
   canAttack: 1
@@ -27,7 +28,7 @@ MonoBehaviour:
   attackVariance: 0.2
   attackDamage: 10
   attackEffect: {fileID: 0}
-  chaseSpeed: 5
+  chaseSpeed: 2.36
   aggroRange: 5
   decisionInterval: 0.3
   patrolRadius: 5
@@ -36,7 +37,7 @@ MonoBehaviour:
   animatorController: {fileID: 0}
   defaultSprite: {fileID: 0}
   colliderSize: {x: 0.5, y: 0.5}
-  moveSpeedParam: MoveSpeed
+  moveSpeedParam: Speed
   attackTrigger: Attack
   summonTrigger: Summon
   deathTrigger: Death
@@ -48,7 +49,3 @@ MonoBehaviour:
   maxSplitGenerations: 2
   acidPoolDuration: 3
   smallerSlimePrefab: {fileID: 2936757796499747461, guid: 0b7daaa47b31b7c4fa5e940c47938cc3, type: 3}
-  jumpForce: 4
-  jumpInterval: 1
-  retreatSpeed: 3
-  retreatDuration: 2
