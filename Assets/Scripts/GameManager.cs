@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using System.Collections.Generic;
 
 public class GameManager : MonoBehaviour
 {
@@ -44,6 +45,32 @@ public class GameManager : MonoBehaviour
         playerData.saveState.savedPosition = position;
         playerData.saveState.savedHealth = health.CurrentHealth;
         playerData.saveState.savedScene = SceneManager.GetActiveScene().name;
+
+        // Save perk system data if it exists
+        var perkSystem = FindObjectOfType<PerkSystem>();
+        if (perkSystem != null)
+        {
+            // Create a deep copy of the perk data
+            playerData.saveState.perkSystemData = new PerkSystemData
+            {
+                currentXp = perkSystem.CurrentXp,
+                currentLevel = perkSystem.CurrentLevel,
+                xpToNextLevel = perkSystem.XpToNextLevel,
+                availablePoints = perkSystem.AvailablePoints,
+                healthPerks = new PerkCategory
+                {
+                    categoryName = perkSystem.HealthPerks.categoryName,
+                    currentPoints = perkSystem.HealthPerks.currentPoints,
+                    levels = new List<PerkLevel>(perkSystem.HealthPerks.levels)
+                },
+                damagePerks = new PerkCategory
+                {
+                    categoryName = perkSystem.DamagePerks.categoryName,
+                    currentPoints = perkSystem.DamagePerks.currentPoints,
+                    levels = new List<PerkLevel>(perkSystem.DamagePerks.levels)
+                }
+            };
+        }
 
         Debug.Log($"Game saved at {position} in {playerData.saveState.savedScene}");
     }
@@ -92,6 +119,25 @@ public class GameManager : MonoBehaviour
             if (health != null)
             {
                 health.SetCurrentHealth(playerData.saveState.savedHealth);
+            }
+
+            // Restore perk system data if it exists
+            var perkSystem = FindObjectOfType<PerkSystem>();
+            if (perkSystem != null && playerData.saveState.perkSystemData != null)
+            {
+                perkSystem.LoadPerkData(playerData.saveState.perkSystemData);
+                Debug.Log("Loaded perk system data from save");
+            }
+        }
+
+        else
+        {
+            // Initialize a new game with default perk data
+            var perkSystem = FindObjectOfType<PerkSystem>();
+            if (perkSystem != null)
+            {
+                perkSystem.LoadPerkData(new PerkSystemData());
+                Debug.Log("Initialized new perk system data");
             }
         }
 

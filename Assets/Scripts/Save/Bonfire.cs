@@ -1,112 +1,217 @@
 using UnityEngine;
- // For 2D lights
+using UnityEngine.Rendering.Universal;
+using UnityEngine.Events;
+using UnityEngine.UI;
 
-public class Bonfire : MonoBehaviour
+public class Bonfire : MonoBehaviour, IInteractable
 {
-    [Header("Settings")]
-    [SerializeField] private KeyCode interactKey = KeyCode.S;
-
-    [Header("References")]
-    [SerializeField] private PlayerData playerData;
-    [SerializeField] private MobSpawner mobSpawner;
-
-    private bool playerInRange;
+    [Header("Bonfire Settings")]
+    [SerializeField] private float interactionRange = 2f;
+    [SerializeField] private Light2D bonfireLight;
+    [SerializeField] private ParticleSystem fireParticles;
+    [SerializeField] private AudioClip litSound;
+    [SerializeField] private AudioClip saveSound;
+    
+    [Header("UI")]
+    [SerializeField] private GameObject savePromptUI;
+    [SerializeField] private float promptDisplayTime = 2f;
+    
     [Header("Light Settings")]
-    [SerializeField] private UnityEngine.Rendering.Universal.Light2D fireLight;
-    [SerializeField] private float minIntensity = 0.8f;
-    [SerializeField] private float maxIntensity = 1.2f;
-    [SerializeField] private float flickerSpeed = 5f;
-    [SerializeField] private float lightPulseAmount = 0.2f;
-
-    private float baseIntensity;
-    private float baseRadius;
-
-    void Start()
+    [SerializeField] private float minIntensity = 0.5f;
+    [SerializeField] private float maxIntensity = 1f;
+    [SerializeField] private float flickerSpeed = 1f;
+    
+    private bool isLit = false;
+    private AudioSource audioSource;
+    private float timeOffset;
+    private float savePromptTimer = 0f;
+    private bool showingSavePrompt = false;
+    private bool playerInRange = false;
+    
+    // Event for when the bonfire is lit
+    public UnityEvent onBonfireLit;
+    
+    private void Start()
     {
-        InitializeLightComponents();
-    }
-
-    private void InitializeLightComponents()
-    {
-        if (fireLight == null)
+        audioSource = GetComponent<AudioSource>();
+        if (audioSource == null)
         {
-            // Create light child object if not set up in inspector
-            GameObject lightObj = new GameObject("FireLight");
-            lightObj.transform.SetParent(transform);
-            lightObj.transform.localPosition = Vector3.zero;
+            audioSource = gameObject.AddComponent<AudioSource>();
+        }
+        
+        // Initialize UI
+        if (savePromptUI != null)
+        {
+            savePromptUI.SetActive(false);
+        }
+        
+        // Randomize the flicker offset for variety
+        timeOffset = Random.Range(0f, 100f);
+        
+        // Initialize light state
+        if (bonfireLight != null)
+        {
+            bonfireLight.intensity = 0f;
+            bonfireLight.enabled = false;
+        }
+        
+        if (fireParticles != null)
+        {
+            var emission = fireParticles.emission;
+            emission.enabled = false;
+        }
+    }
+    
+    private void Update()
+    {
+        if (isLit && bonfireLight != null)
+        {
+            // Create a flickering effect for the bonfire light
+            float noise = Mathf.PerlinNoise(Time.time * flickerSpeed + timeOffset, 0f);
+            bonfireLight.intensity = Mathf.Lerp(minIntensity, maxIntensity, noise);
+        }
+        
+        // Handle save prompt timer
+        if (showingSavePrompt)
+        {
+            savePromptTimer -= Time.deltaTime;
+            if (savePromptTimer <= 0f)
+            {
+                HideSavePrompt();
+            }
+        }
+        
+        // Check for interaction input
+        if (playerInRange && Input.GetKeyDown(KeyCode.E))
+        {
+            Interact(GameObject.FindGameObjectWithTag("Player"));
+        }
+    }
+    
+    public void Interact(GameObject interactor)
+    {
+        if (!isLit)
+        {
+            LightBonfire();
+        }
+        
+        // Always save when interacting with a lit bonfire
+        SaveGame(interactor.transform.position);
+    }
+    
+    private void LightBonfire()
+    {
+        isLit = true;
+        
+        // Enable visual effects
+        if (bonfireLight != null)
+        {
+            bonfireLight.enabled = true;
+            bonfireLight.intensity = minIntensity;
+        }
+        
+        if (fireParticles != null)
+        {
+            var emission = fireParticles.emission;
+            emission.enabled = true;
+            fireParticles.Play();
+        }
+        
+        // Play sound
+        if (litSound != null)
+        {
+            audioSource.PlayOneShot(litSound);
+        }
+        
+        // Invoke the event
+        onBonfireLit?.Invoke();
+        
+        Debug.Log("Bonfire has been lit!");
+    }
+    
+    private void SaveGame(Vector3 playerPosition)
+    {
+        // Find the GameManager and call its SaveGame method
+        var gameManager = FindObjectOfType<GameManager>();
+        if (gameManager != null)
+        {
+            // Heal the player to full health before saving
+            var health = FindObjectOfType<HealthSystem>();
+            if (health != null)
+            {
+                health.SetCurrentHealth(health.GetMaxHealth());
+            }
             
-            fireLight = lightObj.AddComponent<UnityEngine.Rendering.Universal.Light2D>();
-            fireLight.lightType = UnityEngine.Rendering.Universal.Light2D.LightType.Point;
-            fireLight.color = new Color(1f, 0.5f, 0.3f); // Orange-red
-            fireLight.intensity = 1f;
-            fireLight.pointLightOuterRadius = 5f;
-            fireLight.pointLightInnerRadius = 1f;
-            fireLight.pointLightInnerAngle = 360f;
-            fireLight.pointLightOuterAngle = 360f;
+            gameManager.SaveGame(playerPosition);
+            
+            // Play save sound if available
+            if (saveSound != null)
+            {
+                audioSource.PlayOneShot(saveSound);
+            }
+            
+            // Show save confirmation
+            ShowSavePrompt();
+            Debug.Log("Game saved at bonfire!");
         }
-
-        baseIntensity = fireLight.intensity;
-        baseRadius = fireLight.pointLightOuterRadius;
-        GetComponent<CircleCollider2D>().radius = baseRadius;
-    }
-
-    private void AnimateFireLight()
-    {
-        // Flicker intensity
-        float intensityVariation = Mathf.PerlinNoise(Time.time * flickerSpeed, 0);
-        fireLight.intensity = baseIntensity + intensityVariation * lightPulseAmount;
-
-        // Pulse radius
-        float radiusVariation = Mathf.Sin(Time.time * flickerSpeed) * 0.1f;
-        fireLight.pointLightOuterRadius = baseRadius + radiusVariation;
-    }
-
-
-    void Update()
-    {
-        if (fireLight != null)
+        else
         {
-            AnimateFireLight();
-        }
-        if (playerInRange && Input.GetKeyDown(interactKey))
-        {
-            SaveAtBonfire();
+            Debug.LogWarning("GameManager not found in the scene!");
         }
     }
-
-    private void SaveAtBonfire()
+    
+    private void ShowSavePrompt()
     {
-        // Get player reference
-        var player = FindObjectOfType<PlayerMovement>();
-        var health = player.GetComponent<HealthSystem>();
-
-        // Full heal before saving
-        health.SetCurrentHealth(health.GetMaxHealth());
-
-        // Save game at bonfire position
-        GameManager.Instance.SaveGame(transform.position);
-        mobSpawner.ToggleSpawning(false);
-
-        // Visual feedback
-        GetComponent<Animator>().SetTrigger("Activate");
-        Debug.Log("Game saved at bonfire!");
+        if (savePromptUI != null)
+        {
+            savePromptUI.SetActive(true);
+            savePromptTimer = promptDisplayTime;
+            showingSavePrompt = true;
+        }
     }
-
-    void OnTriggerEnter2D(Collider2D other)
+    
+    private void HideSavePrompt()
+    {
+        if (savePromptUI != null)
+        {
+            savePromptUI.SetActive(false);
+            showingSavePrompt = false;
+        }
+    }
+    
+    public bool IsInRange(Vector3 playerPosition, out int priority)
+    {
+        float distance = Vector3.Distance(transform.position, playerPosition);
+        bool inRange = distance <= interactionRange;
+        
+        if (inRange && !playerInRange)
+        {
+            playerInRange = true;
+            // Show interaction prompt
+        }
+        else if (!inRange && playerInRange)
+        {
+            playerInRange = false;
+            // Hide interaction prompt
+        }
+        
+        priority = 0; // Set priority (lower number = higher priority)
+        return inRange;
+    }
+    
+    private void OnTriggerEnter2D(Collider2D other)
     {
         if (other.CompareTag("Player"))
         {
             playerInRange = true;
-            mobSpawner.ToggleSpawning(false);
         }
     }
-
-    void OnTriggerExit2D(Collider2D other)
+    
+    private void OnTriggerExit2D(Collider2D other)
     {
         if (other.CompareTag("Player"))
         {
             playerInRange = false;
-            mobSpawner.ToggleSpawning(true);
         }
     }
 }

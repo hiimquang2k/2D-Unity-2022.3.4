@@ -98,6 +98,9 @@ public class PlayerData : ScriptableObject
         public Vector2 savedVelocity = Vector2.zero;
         public bool wasDashing = false;
         public float dashCooldownRemaining = 0f;
+        
+        // Perk system data
+        public PerkSystemData perkSystemData = new PerkSystemData();
     }
 
     public void ResetData()

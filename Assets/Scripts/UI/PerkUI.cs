@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using UnityEngine.EventSystems;
 
 public class PerkUI : MonoBehaviour
 {
@@ -41,8 +42,8 @@ public class PerkUI : MonoBehaviour
         // Subscribe to events
         if (perkSystem != null)
         {
-            perkSystem.OnXpChanged += UpdateXpUI;
-            perkSystem.OnLevelUp += OnLevelUp;
+            perkSystem.OnXpChanged.AddListener(UpdateXpUI);
+            perkSystem.OnLevelUp.AddListener(OnLevelUp);
         }
             
         // Initial UI update
@@ -55,15 +56,15 @@ public class PerkUI : MonoBehaviour
         // Unsubscribe from events
         if (perkSystem != null)
         {
-            perkSystem.OnXpChanged -= UpdateXpUI;
-            perkSystem.OnLevelUp -= OnLevelUp;
+            perkSystem.OnXpChanged.RemoveListener(UpdateXpUI);
+            perkSystem.OnLevelUp.RemoveListener(OnLevelUp);
         }
     }
 
     private void Update()
     {
-        // Toggle UI with 'P' key
-        if (Input.GetKeyDown(KeyCode.P))
+        // Toggle UI with 'P' key, but only if we're not already handling input in the panel
+        if (Input.GetKeyDown(KeyCode.P) && !(perkPanel != null && perkPanel.activeSelf && EventSystem.current.currentSelectedGameObject != null))
         {
             TogglePerkMenu();
         }
@@ -90,18 +91,21 @@ public class PerkUI : MonoBehaviour
         if (perkSystem == null) return;
 
         // Update available points
-        availablePointsText.text = $"Available Points: {perkSystem.availablePoints}";
+        availablePointsText.text = $"Available Points: {perkSystem.AvailablePoints}";
         
         // Update level and XP
-        UpdateXpUI(perkSystem.currentXp, perkSystem.xpToNextLevel);
+        if (perkSystem != null)
+        {
+            UpdateXpUI(perkSystem.CurrentXp, perkSystem.XpToNextLevel);
+        }
         
         // Update perk UIs
-        UpdatePerkUI(perkSystem.healthPerks, healthPerkIcons, healthPointsText);
-        UpdatePerkUI(perkSystem.damagePerks, damagePerkIcons, damagePointsText);
+        UpdatePerkUI(perkSystem.HealthPerks, healthPerkIcons, healthPointsText);
+        UpdatePerkUI(perkSystem.DamagePerks, damagePerkIcons, damagePointsText);
         
         // Update button interactivity
-        healthButton.interactable = perkSystem.availablePoints > 0;
-        damageButton.interactable = perkSystem.availablePoints > 0;
+        healthButton.interactable = perkSystem.AvailablePoints > 0;
+        damageButton.interactable = perkSystem.AvailablePoints > 0;
     }
 
     private void UpdateXpUI(int currentXp, int xpToNextLevel)
@@ -113,7 +117,7 @@ public class PerkUI : MonoBehaviour
         }
         
         if (levelText != null)
-            levelText.text = $"Level {perkSystem.currentLevel}";
+            levelText.text = $"Level {perkSystem.CurrentLevel}";
             
         if (xpText != null)
             xpText.text = $"{currentXp} / {xpToNextLevel} XP";
@@ -130,15 +134,27 @@ public class PerkUI : MonoBehaviour
 
     private void UpdatePerkUI(PerkCategory perkCategory, Image[] perkIcons, TextMeshProUGUI pointsText)
     {
-        if (perkCategory == null || perkIcons == null) return;
+        if (perkCategory == null)
+        {
+            Debug.LogError("PerkCategory is null!");
+            return;
+        }
+        
+        if (perkIcons == null)
+        {
+            Debug.LogError("PerkIcons array is null!");
+            return;
+        }
         
         pointsText.text = $"{perkCategory.currentPoints} points";
+        Debug.Log($"Updating {perkCategory.categoryName} UI with {perkCategory.levels?.Count} levels and {perkIcons.Length} icons");
         
         for (int i = 0; i < perkIcons.Length; i++)
         {
-            if (i < perkCategory.levels.Count)
+            if (i < perkCategory.levels?.Count)
             {
                 bool isActive = perkCategory.levels[i].isActive;
+                Debug.Log($"Setting perk {i} active: {isActive}");
                 perkIcons[i].color = isActive ? activeColor : inactiveColor;
                 
                 // Optional: Add visual effects for active perks
@@ -157,14 +173,14 @@ public class PerkUI : MonoBehaviour
 
     private void OnHealthButtonClicked()
     {
-        if (perkSystem.availablePoints <= 0) return;
+        if (perkSystem.AvailablePoints <= 0) return;
         perkSystem.AddPointToHealth();
         UpdateUI();
     }
 
     private void OnDamageButtonClicked()
     {
-        if (perkSystem.availablePoints <= 0) return;
+        if (perkSystem.AvailablePoints <= 0) return;
         perkSystem.AddPointToDamage();
         UpdateUI();
     }
