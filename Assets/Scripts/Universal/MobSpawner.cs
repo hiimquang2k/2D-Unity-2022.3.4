@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEditor;
 
 public class MobSpawner : MonoBehaviour
 {
@@ -18,8 +19,11 @@ public class MobSpawner : MonoBehaviour
     [SerializeField] private LayerMask groundLayer;
 
     [Header("Mob Prefabs")]
-    [SerializeField] private List<GameObject> mobPrefabs;
+    [SerializeField] private List<GameObject> defaultMobPrefabs;
     [SerializeField] private Transform mobContainer;
+
+    [Header("Spawn Zones")]
+    [SerializeField] private List<SpawnZone> spawnZones = new List<SpawnZone>();
 
     [Header("References")]
     [SerializeField] private Transform player;
@@ -29,6 +33,7 @@ public class MobSpawner : MonoBehaviour
     private float cooldownTimer;
     private Vector2 lastPlayerPosition;
     private bool spawningEnabled = true;
+    private SpawnZone currentZone = null;
 
     private void Start()
     {
@@ -152,7 +157,11 @@ public class MobSpawner : MonoBehaviour
 
     private GameObject GetRandomMobPrefab()
     {
-        return mobPrefabs[Random.Range(0, mobPrefabs.Count)];
+        if (currentZone != null && currentZone.allowedMobs.Count > 0)
+        {
+            return currentZone.allowedMobs[Random.Range(0, currentZone.allowedMobs.Count)];
+        }
+        return defaultMobPrefabs[Random.Range(0, defaultMobPrefabs.Count)];
     }
 
     private GameObject GetPooledMob(GameObject prefab)
@@ -180,7 +189,7 @@ public class MobSpawner : MonoBehaviour
             necro.Initialize();
         }
 
-        monster.stateMachine.SwitchState(MonsterStateType.Idle);
+        //monster.stateMachine.SwitchState(MonsterStateType.Idle);
     }
 
     private void ManageMobLifecycle()
@@ -219,7 +228,7 @@ public class MobSpawner : MonoBehaviour
 
     private void InitializeMobPool()
     {
-        foreach (GameObject prefab in mobPrefabs)
+        foreach (GameObject prefab in defaultMobPrefabs)
         {
             string key = prefab.name;
             mobPool[key] = new Queue<GameObject>();
@@ -236,6 +245,23 @@ public class MobSpawner : MonoBehaviour
     private void UpdatePlayerTracking()
     {
         lastPlayerPosition = player.position;
+        UpdateCurrentZone();
+    }
+
+    private void UpdateCurrentZone()
+    {
+        foreach (var zone in spawnZones)
+        {
+            if (zone.IsWithinZone(player.position))
+            {
+                if (zone.CanSpawnMobs())
+                {
+                    currentZone = zone;
+                    return;
+                }
+            }
+        }
+        currentZone = null;
     }
 
     public void ToggleSpawning(bool enable)
@@ -274,5 +300,38 @@ public class MobSpawner : MonoBehaviour
         // Draw despawn distance
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(player.position, despawnDistance);
+
+        // Draw spawn zones
+        if (spawnZones != null)
+        {
+            foreach (var zone in spawnZones)
+            {
+                if (zone.zoneCenter != null)
+                {
+                    // Draw zone outline
+                    Gizmos.color = Color.cyan;
+                    Gizmos.DrawWireSphere(zone.zoneCenter, zone.zoneRadius);
+                    
+                    // Draw zone center point
+                    Gizmos.color = Color.yellow;
+                    Gizmos.DrawSphere(zone.zoneCenter, 0.2f);
+                    
+                    // Draw zone name text
+                    Handles.Label(zone.zoneCenter, zone.zoneName);
+                    
+                    // Draw allowed mobs text
+                    if (zone.allowedMobs.Count > 0)
+                    {
+                        Vector2 textPosition = zone.zoneCenter + Vector2.up * (zone.zoneRadius + 0.5f);
+                        string mobsText = "Allowed Mobs:\n";
+                        foreach (GameObject mob in zone.allowedMobs)
+                        {
+                            mobsText += mob.name + "\n";
+                        }
+                        Handles.Label(textPosition, mobsText);
+                    }
+                }
+            }
+        }
     }
 }

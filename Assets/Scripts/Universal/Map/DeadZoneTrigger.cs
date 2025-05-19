@@ -8,9 +8,16 @@ public class DeathZone : MonoBehaviour
         // Check if the colliding object is the player
         if (other.CompareTag("Player"))
         {
-            // Call the player's death function or reload the scene
+            // Call the player's death function and handle game state
             Destroy(other.gameObject); // Destroys the player
-            SceneManager.LoadScene(SceneManager.GetActiveScene().name); // Reload current scene
+            if (GameManager.Instance.playerData.saveState.hasSave)
+            {
+                GameManager.Instance.LoadGame(); // Load saved game if save exists
+            }
+            else
+            {
+                GameManager.Instance.StartNewGame(); // Start new game if no save exists
+            }
         }
     }
 }

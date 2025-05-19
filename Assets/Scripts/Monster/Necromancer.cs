@@ -53,9 +53,16 @@ public class Necromancer : Monster
         }
 
         // Instantiate new skeleton directly
+        // Get random X offset while maintaining Y position
+        float randomXOffset = UnityEngine.Random.Range(-2f, 2f);
+        Vector2 spawnPosition = new Vector2(
+            transform.position.x + randomXOffset,
+            transform.position.y
+        );
+
         GameObject skeletonObj = GameObject.Instantiate(
             ((NecromancerData)Data).skeletonPrefab,
-            (Vector2)transform.position + UnityEngine.Random.insideUnitCircle * 2f,
+            spawnPosition,
             Quaternion.identity
         );
 

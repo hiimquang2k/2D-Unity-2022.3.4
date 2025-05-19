@@ -11,6 +11,7 @@ public class MenuManager : MonoBehaviour
     public GameObject settingsPanel;
 
     [Header("Settings Controls")]
+    public Slider masterVolumeSlider;
     public Slider musicVolumeSlider;
     public Slider sfxVolumeSlider;
     public TMP_Dropdown graphicsDropdown;
@@ -30,21 +31,27 @@ public class MenuManager : MonoBehaviour
 
     public void OpenSettings()
     {
+        AudioManager.Instance.PlayButtonPressSound();
         mainMenuPanel.SetActive(false);
         settingsPanel.SetActive(true);
     }
 
     public void CloseSettings()
     {
+        AudioManager.Instance.PlayButtonPressSound();
         settingsPanel.SetActive(false);
         mainMenuPanel.SetActive(true);
     }
 
     public void ApplySettings()
     {
-        // Apply audio settings
-        PlayerPrefs.SetFloat("MusicVolume", musicVolumeSlider.value);
-        PlayerPrefs.SetFloat("SFXVolume", sfxVolumeSlider.value);
+        // Apply volume settings
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.SetMasterVolume(masterVolumeSlider.value);
+            AudioManager.Instance.SetMusicVolume(musicVolumeSlider.value);
+            AudioManager.Instance.SetSFXVolume(sfxVolumeSlider.value);
+        }
 
         // Apply graphics settings
         PlayerPrefs.SetInt("QualityLevel", graphicsDropdown.value);
@@ -114,9 +121,13 @@ public class MenuManager : MonoBehaviour
 
     private void LoadSettings()
     {
-        // Load audio settings
-        musicVolumeSlider.value = PlayerPrefs.GetFloat("MusicVolume", 0.75f);
-        sfxVolumeSlider.value = PlayerPrefs.GetFloat("SFXVolume", 1.0f);
+        // Load volume settings
+        if (AudioManager.Instance != null)
+        {
+            masterVolumeSlider.value = AudioManager.Instance.GetMasterVolume();
+            musicVolumeSlider.value = AudioManager.Instance.GetMusicVolume();
+            sfxVolumeSlider.value = AudioManager.Instance.GetSFXVolume();
+        }
 
         // Load graphics settings
         int qualityLevel = PlayerPrefs.GetInt("QualityLevel", QualitySettings.GetQualityLevel());
@@ -129,6 +140,7 @@ public class MenuManager : MonoBehaviour
     // Your existing methods (StartGame, QuitGame, etc.)
     public void StartNewGame()
     {
+        AudioManager.Instance.PlayButtonPressSound();
         playerData.ResetData();
         GameManager.Instance.StartNewGame();
     }
@@ -140,6 +152,7 @@ public class MenuManager : MonoBehaviour
 
     public void ContinueGame()
     {
+        AudioManager.Instance.PlayButtonPressSound();
         if (playerData.saveState.hasSave)
         {
             GameManager.Instance.LoadGame();
@@ -153,6 +166,7 @@ public class MenuManager : MonoBehaviour
 
     public void QuitGame()
     {
+        AudioManager.Instance.PlayButtonPressSound();
 #if UNITY_EDITOR
         UnityEditor.EditorApplication.isPlaying = false;
 #else

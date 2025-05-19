@@ -82,7 +82,7 @@ public class Bonfire : MonoBehaviour, IInteractable
         }
         
         // Check for interaction input
-        if (playerInRange && Input.GetKeyDown(KeyCode.E))
+        if (playerInRange && Input.GetKeyDown(KeyCode.S))
         {
             Interact(GameObject.FindGameObjectWithTag("Player"));
         }

@@ -50,7 +50,6 @@ public class PerkUI : MonoBehaviour
         UpdateUI();
     }
 
-
     private void OnDestroy()
     {
         // Unsubscribe from events
@@ -70,7 +69,7 @@ public class PerkUI : MonoBehaviour
         }
     }
 
-    private void TogglePerkMenu()
+    public void TogglePerkMenu()
     {
         if (perkPanel == null) return;
         

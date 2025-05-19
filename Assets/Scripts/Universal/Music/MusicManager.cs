@@ -99,6 +99,15 @@ public class MusicManager : MonoBehaviour
         }
     }
 
+    public void SetAllTrackVolumes(float volume)
+    {
+        foreach (MusicTrack track in musicLibrary)
+        {
+            track.volume = volume;
+        }
+        UpdatePlaylist();
+    }
+
     private void Play(MusicTrack track, bool immediate)
     {
         // Don't interrupt higher priority tracks

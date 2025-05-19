@@ -5,10 +5,13 @@ public class DeathState : IMonsterState
     private readonly Monster _monster;
     private float _deathTimer;
     private bool _deathSequenceStarted;
+    private GameObject _healthOrbPrefab;
+    private float _dropChance = 0.5f; // 50% chance to drop health orb
 
     public DeathState(Monster monster)
     {
         _monster = monster;
+        _healthOrbPrefab = Resources.Load<GameObject>("HealthOrb");
     }
 
     public void Enter()
@@ -48,6 +51,9 @@ public class DeathState : IMonsterState
         
         if (_monster.Data.deathEffect != null)
             Object.Instantiate(_monster.Data.deathEffect, _monster.transform.position, Quaternion.identity);
+
+        // Try to drop health orb
+        DropHealthOrb();
     }
 
     // Required by IMonsterState interface
@@ -70,6 +76,21 @@ public class DeathState : IMonsterState
         {
             Object.Destroy(_monster.gameObject);
         }
+    }
+
+    private void DropHealthOrb()
+    {
+        // Only drop if we have a prefab
+        if (_healthOrbPrefab == null)
+            return;
+
+        // Calculate drop position (slightly offset from monster)
+        Vector3 dropPosition = _monster.transform.position;
+        dropPosition.x += UnityEngine.Random.Range(-0.5f, 0.5f);
+        dropPosition.y += UnityEngine.Random.Range(-0.5f, 0.5f);
+
+        // Spawn the health orb
+        GameObject.Instantiate(_healthOrbPrefab, dropPosition, Quaternion.identity);
     }
 
     // Required by IMonsterState interface

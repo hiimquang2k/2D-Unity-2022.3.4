@@ -1,13 +1,14 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using System.Collections.Generic;
+using Cinemachine; // Required for Cinemachine Virtual Camera
 
 public class GameManager : MonoBehaviour
 {
     public static GameManager Instance { get; private set; }
     [Header("Scene Management")]
     [SerializeField] private string startingSceneName = "GameScene";
-    [SerializeField] private PlayerData playerData;
+    public PlayerData playerData;
     [SerializeField] private GameObject playerPrefab;
 
     private GameObject currentPlayer;
@@ -111,6 +112,14 @@ public class GameManager : MonoBehaviour
 
         // Instantiate player
         currentPlayer = Instantiate(playerPrefab, spawnPosition, Quaternion.identity);
+
+        // Get the Cinemachine Virtual Camera and assign player as its target
+        CinemachineVirtualCamera virtualCamera = FindObjectOfType<CinemachineVirtualCamera>();
+        if (virtualCamera != null)
+        {
+            virtualCamera.Follow = currentPlayer.transform;
+            virtualCamera.LookAt = currentPlayer.transform;
+        }
 
         // Restore health if loading from save
         if (playerData.saveState.hasSave)

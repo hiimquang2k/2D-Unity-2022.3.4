@@ -9,7 +9,7 @@ public class FloatingDialogue : MonoBehaviour
     [SerializeField] private TextMeshProUGUI dialogueText;
     
     [Header("Settings")]
-    [SerializeField] private KeyCode progressKey = KeyCode.Space;
+    [SerializeField] private KeyCode progressKey = KeyCode.X;
     [SerializeField] private float characterTypingSpeed = 0.05f;
     [SerializeField] private Vector3 dialogueOffset = new Vector3(0, 1.5f, 0);
     
