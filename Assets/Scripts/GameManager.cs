@@ -8,10 +8,11 @@ public class GameManager : MonoBehaviour
     public static GameManager Instance { get; private set; }
     [Header("Scene Management")]
     [SerializeField] private string startingSceneName = "GameScene";
-    public PlayerData playerData;
-    [SerializeField] private GameObject playerPrefab;
+    [SerializeField] private Vector3 startingPosition = new Vector3(1, 1, 0);
 
-    private GameObject currentPlayer;
+    [SerializeField] private GameObject playerPrefab;
+    public PlayerData playerData;
+    public GameObject currentPlayer;
 
     private void Awake()
     {
@@ -155,8 +156,14 @@ public class GameManager : MonoBehaviour
 
     public void StartNewGame()
     {
+        // Reset player data
         playerData.ResetData();
         playerData.saveState.savedScene = startingSceneName;
-        SceneManager.LoadScene(startingSceneName);
+        
+        // Get starting position
+        Vector3 startPosition = startingPosition;
+        
+        // Use SceneTransitionManager for smooth transition
+        SceneTransitionManager.TransitionToScene(startingSceneName, startPosition);
     }
 }

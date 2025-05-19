@@ -32,7 +32,6 @@ public class MenuManager : MonoBehaviour
     public void OpenSettings()
     {
         AudioManager.Instance.PlayButtonPressSound();
-        mainMenuPanel.SetActive(false);
         settingsPanel.SetActive(true);
     }
 
@@ -40,7 +39,6 @@ public class MenuManager : MonoBehaviour
     {
         AudioManager.Instance.PlayButtonPressSound();
         settingsPanel.SetActive(false);
-        mainMenuPanel.SetActive(true);
     }
 
     public void ApplySettings()
@@ -141,7 +139,6 @@ public class MenuManager : MonoBehaviour
     public void StartNewGame()
     {
         AudioManager.Instance.PlayButtonPressSound();
-        playerData.ResetData();
         GameManager.Instance.StartNewGame();
     }
 

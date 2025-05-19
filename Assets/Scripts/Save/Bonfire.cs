@@ -81,6 +81,20 @@ public class Bonfire : MonoBehaviour, IInteractable
             }
         }
         
+        // Check if player is in range
+        GameObject player = GameObject.FindGameObjectWithTag("Player");
+        if (player != null)
+        {
+            float distance = Vector2.Distance(transform.position, player.transform.position);
+            playerInRange = distance <= interactionRange;
+
+            // Show save prompt when player is in range
+            if (playerInRange && !showingSavePrompt)
+            {
+                ShowSavePrompt();
+            }
+        }
+        
         // Check for interaction input
         if (playerInRange && Input.GetKeyDown(KeyCode.S))
         {
@@ -97,6 +111,9 @@ public class Bonfire : MonoBehaviour, IInteractable
         
         // Always save when interacting with a lit bonfire
         SaveGame(interactor.transform.position);
+        
+        // Hide the save prompt after interaction
+        HideSavePrompt();
     }
     
     private void LightBonfire()
