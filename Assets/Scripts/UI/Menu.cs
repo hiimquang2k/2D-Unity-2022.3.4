@@ -139,7 +139,8 @@ public class MenuManager : MonoBehaviour
     public void StartNewGame()
     {
         AudioManager.Instance.PlayButtonPressSound();
-        GameManager.Instance.StartNewGame();
+        // Transition to the Intro scene
+        SceneTransitionManager.TransitionToScene("IntroScene", Vector3.zero);
     }
 
     public void OpenOptions()

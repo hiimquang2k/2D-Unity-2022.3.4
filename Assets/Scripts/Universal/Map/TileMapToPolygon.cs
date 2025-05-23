@@ -1,4 +1,7 @@
 using UnityEngine;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 [ExecuteAlways] // Works in both edit mode and play mode
 public class GridSnapCollider : MonoBehaviour
@@ -7,10 +10,12 @@ public class GridSnapCollider : MonoBehaviour
     
     void Update()
     {
-        if (Application.isEditor && !Application.isPlaying)
+#if UNITY_EDITOR
+        if (!Application.isPlaying)
         {
             SnapToGrid();
         }
+#endif
     }
     
     void SnapToGrid()
@@ -38,7 +43,9 @@ public class GridSnapCollider : MonoBehaviour
         if (changed)
         {
             collider.SetPath(0, points);
-            UnityEditor.EditorUtility.SetDirty(this); // Mark as changed
+#if UNITY_EDITOR
+            EditorUtility.SetDirty(this); // Mark as changed
+#endif
         }
     }
 }

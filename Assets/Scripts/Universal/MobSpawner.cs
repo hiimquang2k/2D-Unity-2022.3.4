@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using UnityEngine;
+#if UNITY_EDITOR
 using UnityEditor;
+#endif
 
 public class MobSpawner : MonoBehaviour
 {
@@ -287,51 +289,51 @@ public class MobSpawner : MonoBehaviour
 
     private void OnDrawGizmosSelected()
     {
-        if (!player) return;
+#if UNITY_EDITOR
+        if (player == null) return;
 
-        // Draw spawn rectangle
+        // Draw spawn area boundaries
         Gizmos.color = Color.green;
-        Vector2 rectCenter = (Vector2)player.position +
-                           (Vector2.right * spawnDistance) +
-                           Vector2.up * (minHeightAbovePlayer + spawnHeight / 2f);
-        Vector2 rectSize = new Vector2(spawnWidth, spawnHeight);
-        Gizmos.DrawWireCube(rectCenter, rectSize);
+        Vector2 spawnAreaSize = new Vector2(spawnWidth, spawnHeight);
+        Gizmos.DrawWireCube(transform.position, spawnAreaSize);
 
-        // Draw despawn distance
+        // Draw spawn and despawn distances
+        Gizmos.color = new Color(1f, 0.5f, 0f); // Orange
+        Gizmos.DrawWireSphere(player.position, spawnDistance);
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(player.position, despawnDistance);
 
-        // Draw spawn zones
-        if (spawnZones != null)
+        // Draw zones if any
+        if (spawnZones != null && spawnZones.Count > 0)
         {
             foreach (var zone in spawnZones)
             {
-                if (zone.zoneCenter != null)
+                if (zone == null) continue;
+                
+                // Draw zone outline
+                Gizmos.color = Color.cyan;
+                Gizmos.DrawWireSphere(zone.zoneCenter, zone.zoneRadius);
+                
+                // Draw zone center point
+                Gizmos.color = Color.yellow;
+                Gizmos.DrawSphere(zone.zoneCenter, 0.2f);
+                
+                // Draw zone name text
+                Handles.Label(zone.zoneCenter, zone.zoneName);
+                
+                // Draw allowed mobs text
+                if (zone.allowedMobs.Count > 0)
                 {
-                    // Draw zone outline
-                    Gizmos.color = Color.cyan;
-                    Gizmos.DrawWireSphere(zone.zoneCenter, zone.zoneRadius);
-                    
-                    // Draw zone center point
-                    Gizmos.color = Color.yellow;
-                    Gizmos.DrawSphere(zone.zoneCenter, 0.2f);
-                    
-                    // Draw zone name text
-                    Handles.Label(zone.zoneCenter, zone.zoneName);
-                    
-                    // Draw allowed mobs text
-                    if (zone.allowedMobs.Count > 0)
+                    Vector2 textPosition = zone.zoneCenter + Vector2.up * (zone.zoneRadius + 0.5f);
+                    string mobsText = "Allowed Mobs:\n";
+                    foreach (GameObject mob in zone.allowedMobs)
                     {
-                        Vector2 textPosition = zone.zoneCenter + Vector2.up * (zone.zoneRadius + 0.5f);
-                        string mobsText = "Allowed Mobs:\n";
-                        foreach (GameObject mob in zone.allowedMobs)
-                        {
-                            mobsText += mob.name + "\n";
-                        }
-                        Handles.Label(textPosition, mobsText);
+                        mobsText += mob.name + "\n";
                     }
+                    Handles.Label(textPosition, mobsText);
                 }
             }
         }
+#endif
     }
 }

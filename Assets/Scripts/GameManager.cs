@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using System.Collections;
 using System.Collections.Generic;
 using Cinemachine; // Required for Cinemachine Virtual Camera
 
@@ -91,14 +92,40 @@ public class GameManager : MonoBehaviour
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        if (scene.name == playerData.saveState.savedScene ||
-           (scene.name == startingSceneName && !playerData.saveState.hasSave))
+        Debug.Log($"Scene loaded: {scene.name}, hasSave: {playerData.saveState.hasSave}");
+        
+        // Check if we have a teleport position
+        if (PlayerPrefs.HasKey("TargetPosX") && PlayerPrefs.HasKey("TargetPosY"))
         {
+            // If loading from teleport, use the teleport position
+            Vector2 teleportPos = new Vector2(
+                PlayerPrefs.GetFloat("TargetPosX"),
+                PlayerPrefs.GetFloat("TargetPosY")
+            );
+            // Clear the teleport position
+            PlayerPrefs.DeleteKey("TargetPosX");
+            PlayerPrefs.DeleteKey("TargetPosY");
+            PlayerPrefs.Save();
+            
+            // Spawn player at teleport position
+            SpawnPlayer(teleportPos);
+        }
+        // If this is the starting scene or a new game, spawn the player
+        else if (scene.name == startingSceneName || 
+                (scene.name == playerData.saveState.savedScene && playerData.saveState.hasSave))
+        {
+            SpawnPlayer();
+        }
+        // If coming from intro scene, make sure to spawn the player
+        else if (scene.name == playerData.saveState.savedScene)
+        {
+            // If we get here, it means we're coming from the intro
+            playerData.saveState.hasSave = true;
             SpawnPlayer();
         }
     }
 
-    private void SpawnPlayer()
+    private void SpawnPlayer(Vector2? teleportPosition = null)
     {
         // Destroy existing player if any
         if (currentPlayer != null)
@@ -107,19 +134,67 @@ public class GameManager : MonoBehaviour
         }
 
         // Determine spawn position
-        Vector3 spawnPosition = playerData.saveState.hasSave ?
-            playerData.saveState.savedPosition : new
-            Vector3(1, 1, 0); // Or your default spawn point
+        Vector3 spawnPosition;
+        if (teleportPosition.HasValue)
+        {
+            spawnPosition = teleportPosition.Value;
+        }
+        else if (playerData.saveState.hasSave)
+        {
+            spawnPosition = playerData.saveState.savedPosition;
+        }
+        else
+        {
+            spawnPosition = new Vector3(1, 1, 0);
+        }
 
         // Instantiate player
         currentPlayer = Instantiate(playerPrefab, spawnPosition, Quaternion.identity);
-
-        // Get the Cinemachine Virtual Camera and assign player as its target
-        CinemachineVirtualCamera virtualCamera = FindObjectOfType<CinemachineVirtualCamera>();
-        if (virtualCamera != null)
+        Debug.Log($"Player spawned at {spawnPosition} in {SceneManager.GetActiveScene().name}");
+        
+        // Make sure the player is active before setting up the camera
+        if (currentPlayer.activeInHierarchy)
         {
-            virtualCamera.Follow = currentPlayer.transform;
-            virtualCamera.LookAt = currentPlayer.transform;
+            SetupCamera();
+        }
+        else
+        {
+            // If player isn't active yet, wait one frame and try again
+            StartCoroutine(DelayedCameraSetup());
+        }
+    }
+
+    private System.Collections.IEnumerator DelayedCameraSetup()
+    {
+        // Wait for one frame to ensure everything is initialized
+        yield return null;
+        SetupCamera();
+    }
+
+    private void SetupCamera()
+    {
+        if (currentPlayer == null) 
+        {
+            Debug.LogError("Cannot setup camera: currentPlayer is null");
+            return;
+        }
+
+        // Find all Cinemachine virtual cameras in the scene
+        var virtualCameras = FindObjectsOfType<CinemachineVirtualCamera>();
+        Debug.Log($"Found {virtualCameras.Length} virtual cameras in the scene");
+
+        // Assign player to all virtual cameras
+        foreach (var cam in virtualCameras)
+        {
+            cam.Follow = currentPlayer.transform;
+            cam.LookAt = currentPlayer.transform;
+            Debug.Log($"Assigned player to camera: {cam.name}");
+        }
+
+        // If no cameras found, log a warning
+        if (virtualCameras.Length == 0)
+        {
+            Debug.LogWarning("No Cinemachine Virtual Cameras found in the scene!");
         }
 
         // Restore health if loading from save
@@ -151,7 +226,6 @@ public class GameManager : MonoBehaviour
             }
         }
 
-        Debug.Log($"Player spawned at {spawnPosition} in {SceneManager.GetActiveScene().name}");
     }
 
     public void StartNewGame()

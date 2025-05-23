@@ -80,8 +80,8 @@ public class DeathState : IMonsterState
 
     private void DropHealthOrb()
     {
-        // Only drop if we have a prefab
-        if (_healthOrbPrefab == null)
+        // Only drop if we have a prefab and random chance succeeds
+        if (_healthOrbPrefab == null || Random.value > _dropChance)
             return;
 
         // Calculate drop position (slightly offset from monster)
