@@ -17310,7 +17310,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &898257555
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -21272,6 +21272,67 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1771293271}
   m_CullTransparentMesh: 1
+--- !u!1001 &1849137840
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 4165818562546088767, guid: 09425d85660967849a854d872e815137, type: 3}
+      propertyPath: m_Name
+      value: Martial Hero
+      objectReference: {fileID: 0}
+    - target: {fileID: 4165818562546088767, guid: 09425d85660967849a854d872e815137, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4943020224744531721, guid: 09425d85660967849a854d872e815137, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -0.907
+      objectReference: {fileID: 0}
+    - target: {fileID: 4943020224744531721, guid: 09425d85660967849a854d872e815137, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 1.15
+      objectReference: {fileID: 0}
+    - target: {fileID: 4943020224744531721, guid: 09425d85660967849a854d872e815137, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4943020224744531721, guid: 09425d85660967849a854d872e815137, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4943020224744531721, guid: 09425d85660967849a854d872e815137, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4943020224744531721, guid: 09425d85660967849a854d872e815137, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4943020224744531721, guid: 09425d85660967849a854d872e815137, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4943020224744531721, guid: 09425d85660967849a854d872e815137, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4943020224744531721, guid: 09425d85660967849a854d872e815137, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4943020224744531721, guid: 09425d85660967849a854d872e815137, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 09425d85660967849a854d872e815137, type: 3}
 --- !u!1 &1857114500
 GameObject:
   m_ObjectHideFlags: 0
@@ -26546,7 +26607,7 @@ BoxCollider2D:
   m_IsTrigger: 1
   m_UsedByEffector: 0
   m_UsedByComposite: 0
-  m_Offset: {x: 52.284485, y: -9.718871}
+  m_Offset: {x: 45.720497, y: -9.718871}
   m_SpriteTilingProperty:
     border: {x: 0, y: 0, z: 0, w: 0}
     pivot: {x: 0, y: 0}
@@ -26557,7 +26618,7 @@ BoxCollider2D:
     adaptiveTiling: 0
   m_AutoTiling: 0
   serializedVersion: 2
-  m_Size: {x: 105.56897, y: 1.3088093}
+  m_Size: {x: 118.696945, y: 1.3088093}
   m_EdgeRadius: 0
 --- !u!114 &1937712003
 MonoBehaviour:
@@ -27795,3 +27856,4 @@ SceneRoots:
   - {fileID: 1649341745}
   - {fileID: 467421339}
   - {fileID: 1098057568}
+  - {fileID: 1849137840}
