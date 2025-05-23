@@ -68,7 +68,7 @@ public class BossIntroManager : MonoBehaviour
         StartCoroutine(ShowBossName());
 
         // Change music
-        MusicManager.Instance.PlayTrack("BossTheme");
+        //MusicManager.Instance.PlayTrack("BossTheme");
 
         // Wait for intro duration
         yield return new WaitForSeconds(introDuration);

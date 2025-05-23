@@ -5636,6 +5636,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   transitionUI: {fileID: 245495215281958147, guid: 3e3403aeb1eacbd4c8065baed4fb332e, type: 3}
   transitionDuration: 1
+  minLoadTime: 1
+  scenesToPreload: []
 --- !u!4 &1989377148
 Transform:
   m_ObjectHideFlags: 0

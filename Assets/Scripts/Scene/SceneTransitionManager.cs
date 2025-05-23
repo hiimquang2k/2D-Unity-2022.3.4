@@ -1,6 +1,8 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using System.Collections;
+using UnityEngine.Events;
+using System;
 
 public class SceneTransitionManager : MonoBehaviour
 {
@@ -8,11 +10,20 @@ public class SceneTransitionManager : MonoBehaviour
 
     [Header("Transition Settings")]
     [SerializeField] private GameObject transitionUI;
-    [SerializeField] private float transitionDuration = 1f;
+    [SerializeField] private float transitionDuration = 0.5f;
+    [SerializeField] private float minLoadTime = 1f; // Minimum loading time to prevent flashing
+    [SerializeField] private string[] scenesToPreload; // Scenes to preload in the background
+    
+    public static event Action<float> OnLoadProgress; // Progress callback (0-1)
+    public static event Action OnTransitionStart;
+    public static event Action OnTransitionComplete;
     
     private static SceneTransitionManager instance;
     private CanvasGroup transitionCanvasGroup;
     private bool isTransitioning = false;
+    private AsyncOperation loadOperation;
+    private float loadStartTime;
+    private bool isPreloading = false;
 
     private void Awake()
     {
@@ -38,79 +49,125 @@ public class SceneTransitionManager : MonoBehaviour
         }
     }
 
-    public static void TransitionToScene(string sceneName, Vector3 spawnPosition)
+    public static void TransitionToScene(string sceneName, Vector3 spawnPosition, bool forceReload = false)
     {
-        Debug.Log($"TransitionToScene called with scene: {sceneName}");
         if (instance == null)
         {
-            Debug.LogError("SceneTransitionManager not found!");
-            // Try to find it in the scene
             instance = FindObjectOfType<SceneTransitionManager>();
             if (instance == null)
             {
-                Debug.LogError("No SceneTransitionManager found in the scene!");
-                // Fall back to direct scene load
+                Debug.LogError($"No {nameof(SceneTransitionManager)} found in the scene!");
                 SceneManager.LoadScene(sceneName);
                 return;
             }
         }
 
-        instance.StartCoroutine(instance.TransitionCoroutine(sceneName, spawnPosition));
+        if (instance.isTransitioning)
+        {
+            Debug.LogWarning("Scene transition already in progress");
+            return;
+        }
+
+        instance.StartCoroutine(instance.TransitionCoroutine(sceneName, spawnPosition, forceReload));
     }
 
-    private IEnumerator TransitionCoroutine(string sceneName, Vector3 spawnPosition)
+    private void Start()
     {
-        if (isTransitioning) 
+        if (scenesToPreload != null && scenesToPreload.Length > 0)
         {
-            Debug.LogWarning("Already transitioning, ignoring new transition request.");
-            yield break;
+            StartCoroutine(PreloadScenes());
         }
-        
+    }
+
+    private IEnumerator PreloadScenes()
+    {
+        isPreloading = true;
+        foreach (var sceneName in scenesToPreload)
+        {
+            if (!SceneManager.GetSceneByName(sceneName).isLoaded)
+            {
+                var loadOp = SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
+                loadOp.allowSceneActivation = false;
+                
+                while (loadOp.progress < 0.9f)
+                {
+                    yield return null;
+                }
+                
+                // Keep the scene loaded but inactive
+                Debug.Log($"Preloaded scene: {sceneName}");
+            }
+        }
+        isPreloading = false;
+    }
+
+    private IEnumerator TransitionCoroutine(string sceneName, Vector3 spawnPosition, bool forceReload = false)
+    {
         isTransitioning = true;
-        Debug.Log($"Starting transition to scene: {sceneName}");
+        loadStartTime = Time.realtimeSinceStartup;
+        OnTransitionStart?.Invoke();
 
         try
         {
-            // Skip saving game state if we're transitioning from menu
-            if (GameManager.Instance != null && GameManager.Instance.currentPlayer != null)
-            {
-                Debug.Log("Saving game state...");
-                GameManager.Instance.SaveGame(spawnPosition);
-            }
-
-            // Show transition UI if available
+            // 1. Fade out
             if (transitionUI != null && transitionCanvasGroup != null)
             {
                 transitionUI.SetActive(true);
                 transitionCanvasGroup.alpha = 0f;
                 yield return StartCoroutine(FadeTransition(1f));
             }
-            else
+
+            // 2. Save game state if needed
+            if (GameManager.Instance != null && GameManager.Instance.currentPlayer != null)
             {
-                Debug.LogWarning("Transition UI or CanvasGroup not assigned, skipping fade out");
-                // Small delay to ensure everything is ready
-                yield return new WaitForSeconds(0.1f);
+                GameManager.Instance.SaveGame(spawnPosition);
             }
 
+            // 3. Unload unused assets to free up memory
+            yield return Resources.UnloadUnusedAssets();
+            GC.Collect();
 
-            // Load the new scene
-            Debug.Log("Starting scene load...");
-            AsyncOperation asyncLoad = SceneManager.LoadSceneAsync(sceneName);
-            asyncLoad.allowSceneActivation = true;
+            // 4. Start loading the new scene
+            loadOperation = SceneManager.LoadSceneAsync(sceneName);
+            loadOperation.allowSceneActivation = false;
 
-            // Wait for the scene to finish loading
-            while (!asyncLoad.isDone)
+            // 5. Show loading progress
+            while (loadOperation.progress < 0.9f)
             {
-                Debug.Log($"Loading progress: {asyncLoad.progress * 100}%");
+                float progress = Mathf.Clamp01(loadOperation.progress / 0.9f);
+                OnLoadProgress?.Invoke(progress);
                 yield return null;
             }
-            Debug.Log("Scene load complete");
 
-            // Small delay to ensure the new scene is fully initialized
-            yield return new WaitForEndOfFrame();
-            yield return new WaitForEndOfFrame();
+            // 6. Ensure minimum load time
+            float elapsedTime = Time.realtimeSinceStartup - loadStartTime;
+            if (elapsedTime < minLoadTime)
+            {
+                float remainingTime = minLoadTime - elapsedTime;
+                float timer = 0f;
+                while (timer < remainingTime)
+                {
+                    timer += Time.unscaledDeltaTime;
+                    float progress = Mathf.Clamp01((elapsedTime + timer) / minLoadTime);
+                    OnLoadProgress?.Invoke(progress);
+                    yield return null;
+                }
+            }
 
-            // Fade in if we have a transition UI
+
+            // 7. Activate the new scene
+            loadOperation.allowSceneActivation = true;
+
+            // Wait for scene to fully load
+            while (!loadOperation.isDone)
+            {
+                yield return null;
+            }
+
+            // 8. Wait one more frame to ensure everything is initialized
+            yield return null;
+
+            // 9. Fade in
             if (transitionUI != null && transitionCanvasGroup != null)
             {
                 yield return StartCoroutine(FadeTransition(0f));
@@ -120,20 +177,49 @@ public class SceneTransitionManager : MonoBehaviour
         finally
         {
             isTransitioning = false;
-            Debug.Log("Transition complete");
+            loadOperation = null;
+            OnTransitionComplete?.Invoke();
         }
     }
 
     private IEnumerator FadeTransition(float targetAlpha)
     {
+        float startAlpha = transitionCanvasGroup.alpha;
         float elapsedTime = 0f;
+        
         while (elapsedTime < transitionDuration)
         {
-            elapsedTime += Time.deltaTime;
-            float t = elapsedTime / transitionDuration;
-            transitionCanvasGroup.alpha = Mathf.Lerp(transitionCanvasGroup.alpha, targetAlpha, t);
+            elapsedTime += Time.unscaledDeltaTime;
+            float t = Mathf.Clamp01(elapsedTime / transitionDuration);
+            transitionCanvasGroup.alpha = Mathf.Lerp(startAlpha, targetAlpha, t);
             yield return null;
         }
+        
         transitionCanvasGroup.alpha = targetAlpha;
+    }
+    
+    // Call this to preload a specific scene
+    public void PreloadScene(string sceneName)
+    {
+        if (!isPreloading)
+        {
+            StartCoroutine(PreloadSingleScene(sceneName));
+        }
+    }
+    
+    private IEnumerator PreloadSingleScene(string sceneName)
+    {
+        if (!SceneManager.GetSceneByName(sceneName).isLoaded)
+        {
+            var loadOp = SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
+            loadOp.allowSceneActivation = false;
+            
+            while (loadOp.progress < 0.9f)
+            {
+                yield return null;
+            }
+            
+            Debug.Log($"Preloaded scene: {sceneName}");
+        }
     }
 }
